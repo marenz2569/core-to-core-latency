@@ -83,7 +83,12 @@ void CoreToCoreLatencyTest::localThreadFunction(uint64_t* LocalMemory, uint64_t*
 
   std::this_thread::sleep_for(std::chrono::microseconds(1));
 
-  auto Start = std::chrono::high_resolution_clock::now();
+  uint64_t RaxStart{};
+  uint64_t RdxStart{};
+  uint64_t RaxStop{};
+  uint64_t RdxStop{};
+
+  __asm__ __volatile__("rdtscp" : "=a"(RaxStart), "=d"(RdxStart)::);
 
   // send the signal
   *RemoteMemory = 1;
@@ -93,9 +98,12 @@ void CoreToCoreLatencyTest::localThreadFunction(uint64_t* LocalMemory, uint64_t*
   while (*LocalMemory == 0) {
   }
 
-  auto Stop = std::chrono::high_resolution_clock::now();
+  __asm__ __volatile__("rdtscp" : "=a"(RaxStop), "=d"(RdxStop)::);
 
-  DurationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(Stop - Start).count();
+  auto Start = (RdxStart << 32) + RaxStart;
+  auto Stop = (RdxStop << 32) + RaxStop;
+
+  DurationNs = Stop - Start;
 }
 
 void CoreToCoreLatencyTest::remoteThreadFunction(uint64_t* LocalMemory, uint64_t* RemoteMemory, uint64_t CpuId,
