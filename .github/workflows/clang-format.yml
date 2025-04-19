@@ -1,0 +1,18 @@
+name: clang-format-review
+
+# You can be more specific, but it currently only works on pull requests
+on: [push, pull_request]
+
+jobs:
+  clang-format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'true'
+
+      - name: Analyze
+        run: |
+          clang-format --dry-run --Werror -style=file $(find ./src/ -name '*.cpp' -print)
+          clang-format --dry-run --Werror -style=file $(find ./include/ -name '*.hpp' -print)
+          clang-format --dry-run --Werror -style=file $(find ./include/ -name '*.h' -print)
