@@ -13,16 +13,18 @@ namespace cclat {
 
 auto CoreToCoreLatencyTest::run(const cclat::Config& Cfg) -> CoreToCoreLatencyResults {
   std::vector<CoreToCoreLatencyResult> Results;
+  firestarter::CPUTopology Topology;
 
   for (const auto& Test : Cfg.Tests.List) {
-    const auto Result = runPair(Test, Cfg.UnrollCount, Cfg.InnerIterations, Cfg.OuterIterations);
+    const auto Result = runPair(Test, Topology, Cfg.UnrollCount, Cfg.InnerIterations, Cfg.OuterIterations);
     Results.emplace_back(Result);
   }
 
   return CoreToCoreLatencyResults{.Results = Results};
 }
 
-auto CoreToCoreLatencyTest::runPair(const cclat::TestPair& Pair, unsigned UnrollCount, unsigned InnerIterations,
+auto CoreToCoreLatencyTest::runPair(const cclat::TestPair& Pair, const firestarter::CPUTopology& Topology,
+                                    unsigned UnrollCount, unsigned InnerIterations,
                                     unsigned OuterIterations) -> CoreToCoreLatencyResult {
 
   // 1. start two threads and pin them to the local and remote cpus.
@@ -36,7 +38,6 @@ auto CoreToCoreLatencyTest::runPair(const cclat::TestPair& Pair, unsigned Unroll
   auto* LocalMemory = static_cast<uint64_t*>(firestarter::AlignedAlloc::malloc(64));
   auto* RemoteMemory = static_cast<uint64_t*>(firestarter::AlignedAlloc::malloc(64));
 
-  firestarter::CPUTopology Topology;
   auto ThreadBindFunction = [&Topology](auto&& PH1) { Topology.bindCallerToOsIndex(std::forward<decltype(PH1)>(PH1)); };
 
   std::barrier SyncPoint(2);
@@ -68,7 +69,7 @@ void CoreToCoreLatencyTest::localThreadFunction(uint64_t* LocalMemory, uint64_t*
   *LocalMemory = *RemoteMemory;
   SyncPoint.arrive_and_wait();
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(1));
+  std::this_thread::sleep_for(std::chrono::microseconds(1));
 
   auto Start = std::chrono::high_resolution_clock::now();
 

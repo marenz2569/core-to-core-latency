@@ -3,6 +3,7 @@
 #include "core-to-core-latency/Config.hpp"
 #include "core-to-core-latency/CoreToCoreLatencyResults.hpp"
 #include "core-to-core-latency/TestPair.hpp"
+#include "firestarter/CPUTopology.hpp"
 
 #include <barrier>
 #include <functional>
@@ -24,7 +25,8 @@ public:
   /// \arg InnerIterations The number of iteration of the experiment loop
   /// \arg OuterIterations The number of iterations used to average the result
   /// \returns a latency result of this run
-  [[nodiscard]] auto runPair(const cclat::TestPair& Pair, unsigned UnrollCount, unsigned InnerIterations,
+  [[nodiscard]] auto runPair(const cclat::TestPair& Pair, const firestarter::CPUTopology& Topology,
+                             unsigned UnrollCount, unsigned InnerIterations,
                              unsigned OuterIterations) -> CoreToCoreLatencyResult;
 
 private:
