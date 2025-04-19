@@ -57,6 +57,7 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 add_subdirectory(lib/asmjit)
+add_subdirectory(lib/FIRESTARTER)
 
 include_directories(include)
 include_directories(lib/cxxopts/include)
