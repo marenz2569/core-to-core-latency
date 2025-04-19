@@ -16,11 +16,11 @@ auto TestList::fromCpus(const std::set<uint64_t>& Cpus) -> TestList {
         continue;
       }
 
-      Pairs.emplace_back(TestPair{First, Second});
+      Pairs.emplace_back(TestPair{.LocalCpu = First, .RemoteCpu = Second});
     }
   }
 
-  return TestList{Pairs};
+  return TestList{.List = Pairs};
 }
 
 } // namespace cclat

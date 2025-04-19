@@ -1,5 +1,7 @@
 #pragma once
 
+#include "core-to-core-latency/TestList.hpp"
+
 #include <cstdint>
 #include <set>
 #include <string>
@@ -27,6 +29,9 @@ struct Config {
 
   /// The set of cpus on which to run the test
   std::set<uint64_t> CpuBinding;
+
+  /// The list of tests that should be executed
+  TestList Tests;
 
   Config() = delete;
 

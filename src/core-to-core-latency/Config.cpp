@@ -1,4 +1,5 @@
 #include "core-to-core-latency/Config.hpp"
+#include "core-to-core-latency/TestList.hpp"
 
 #include <cstdlib>
 #include <cxxopts.hpp>
@@ -35,6 +36,8 @@ Config::Config(int Argc, const char** Argv)
     OutfilePath = Options["outfile"].as<std::string>();
 
     CpuBinding = firestarter::CpuBind::fromString(Options["bind"].as<std::string>());
+
+    Tests = cclat::TestList::fromCpus(CpuBinding);
   } catch (std::exception& E) {
     std::cerr << Parser.help() << "\n";
     std::cerr << "\n";

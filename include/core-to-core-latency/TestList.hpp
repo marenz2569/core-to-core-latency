@@ -10,8 +10,6 @@ namespace cclat {
 
 /// Create the list of tests from the cpu binding
 struct TestList {
-  TestList() = delete;
-
   std::vector<TestPair> List;
 
   /// Create the list of tests from the to be tested cpus.

@@ -17,8 +17,6 @@ struct CoreToCoreLatencyResult {
 };
 
 struct CoreToCoreLatencyResults {
-  CoreToCoreLatencyResults() = default;
-
   std::vector<CoreToCoreLatencyResult> Results;
 
   /// Save the results as a CSV file.
