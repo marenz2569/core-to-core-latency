@@ -59,7 +59,7 @@ auto CoreToCoreLatencyTest::runPair(const cclat::TestPair& Pair, const firestart
 void CoreToCoreLatencyTest::localThreadFunction(uint64_t* LocalMemory, uint64_t* RemoteMemory, uint64_t CpuId,
                                                 std::function<void(unsigned)> ThreadBindFunction,
                                                 std::barrier<>& SyncPoint, uint64_t& DurationNs) {
-  // ThreadBindFunction(CpuId);
+  ThreadBindFunction(CpuId);
 
   // first touch
   *LocalMemory = 0;
@@ -89,7 +89,7 @@ void CoreToCoreLatencyTest::localThreadFunction(uint64_t* LocalMemory, uint64_t*
 void CoreToCoreLatencyTest::remoteThreadFunction(uint64_t* LocalMemory, uint64_t* RemoteMemory, uint64_t CpuId,
                                                  std::function<void(unsigned)> ThreadBindFunction,
                                                  std::barrier<>& SyncPoint) {
-  // ThreadBindFunction(CpuId);
+  ThreadBindFunction(CpuId);
 
   // first touch
   *RemoteMemory = 0;
