@@ -3,11 +3,14 @@
 #include "firestarter/AlignedAlloc.hpp"
 #include "firestarter/CPUTopology.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <cstdint>
 #include <functional>
 #include <iostream>
+#include <limits>
 #include <thread>
+#include <vector>
 
 namespace cclat {
 
@@ -35,23 +38,32 @@ auto CoreToCoreLatencyTest::runPair(const cclat::TestPair& Pair, const firestart
   // 5. repeat with local and remote threads switched.
   // 6. LOCAL THREAD read time between setting the signal and receiving the signal.
 
-  auto* LocalMemory = static_cast<uint64_t*>(firestarter::AlignedAlloc::malloc(64));
-  auto* RemoteMemory = static_cast<uint64_t*>(firestarter::AlignedAlloc::malloc(64));
+  uint64_t MinValue = std::numeric_limits<uint64_t>::max();
 
-  auto ThreadBindFunction = [&Topology](auto&& PH1) { Topology.bindCallerToOsIndex(std::forward<decltype(PH1)>(PH1)); };
+  for (auto I = 0; I < InnerIterations; I++) {
 
-  std::barrier SyncPoint(2);
-  uint64_t DurationNs{};
+    auto* LocalMemory = static_cast<uint64_t*>(firestarter::AlignedAlloc::malloc(64));
+    auto* RemoteMemory = static_cast<uint64_t*>(firestarter::AlignedAlloc::malloc(64));
 
-  std::thread LocalThread(localThreadFunction, LocalMemory, RemoteMemory, Pair.LocalCpu, ThreadBindFunction,
-                          std::ref(SyncPoint), std::ref(DurationNs));
-  std::thread RemoteThread(remoteThreadFunction, LocalMemory, RemoteMemory, Pair.RemoteCpu, ThreadBindFunction,
-                           std::ref(SyncPoint));
+    auto ThreadBindFunction = [&Topology](auto&& PH1) {
+      Topology.bindCallerToOsIndex(std::forward<decltype(PH1)>(PH1));
+    };
 
-  RemoteThread.join();
-  LocalThread.join();
+    std::barrier SyncPoint(2);
+    uint64_t DurationNs{};
 
-  std::cout << "Local: " << Pair.LocalCpu << " Remote: " << Pair.RemoteCpu << " DurationNs: " << DurationNs << '\n';
+    std::thread LocalThread(localThreadFunction, LocalMemory, RemoteMemory, Pair.LocalCpu, ThreadBindFunction,
+                            std::ref(SyncPoint), std::ref(DurationNs));
+    std::thread RemoteThread(remoteThreadFunction, LocalMemory, RemoteMemory, Pair.RemoteCpu, ThreadBindFunction,
+                             std::ref(SyncPoint));
+
+    RemoteThread.join();
+    LocalThread.join();
+
+    MinValue = std::min(DurationNs, MinValue);
+  }
+
+  std::cout << "Local: " << Pair.LocalCpu << " Remote: " << Pair.RemoteCpu << " MinDurationNs: " << MinValue << '\n';
 
   return CoreToCoreLatencyResult{};
 }
