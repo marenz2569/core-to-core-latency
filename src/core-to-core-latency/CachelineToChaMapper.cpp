@@ -60,7 +60,7 @@ auto CachelineToChaMapper::run(void* Cachelines, std::size_t NumberOfCachelines,
     std::map<uint64_t, uint64_t> ChaToCounterValueMap;
 
     // create the differnece of the measurement value.
-    for (auto ChaIndex = 0; ChaIndex < Pmu.getNumMC(); ChaIndex++) {
+    for (auto ChaIndex = 0; ChaIndex < Pcm->getMaxNumOfUncorePMUs(pcm::PCM::UncorePMUIDs::CBO_PMU_ID, 0); ChaIndex++) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
       ChaToCounterValueMap[ChaIndex] = After.M2MCounter[ChaIndex][0] - Before.M2MCounter[ChaIndex][0];
     }
