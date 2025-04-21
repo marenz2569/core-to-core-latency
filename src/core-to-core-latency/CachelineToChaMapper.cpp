@@ -42,10 +42,10 @@ auto CachelineToChaMapper::run(void* Cachelines, std::size_t NumberOfCachelines,
 
     volatile uint8_t Sum = 0;
     for (auto I = 0; I < NumberOfCachelineReads; I++) {
-      Sum += *Cacheline;
+      Sum = Sum + *Cacheline;
       asm __volatile__("mfence\n"
                        "lfence\n"
-                       "clflush [%[addr]]\n"
+                       "clflush (%[addr])\n"
                        "mfence\n"
                        "lfence" ::[addr] "r"(Cacheline)
                        : "memory");
