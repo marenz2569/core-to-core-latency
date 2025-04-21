@@ -28,11 +28,11 @@ auto main(int Argc, const char** Argv) -> int {
 
     // auto CoreToCha = cclat::ChaToCoreMapper::run(ChaToCachelines);
 
-    cclat::CoreToCoreLatencyTest CCLat;
+    // cclat::CoreToCoreLatencyTest CCLat;
 
-    auto Results = CCLat.run(Cfg);
+    // auto Results = CCLat.run(Cfg);
 
-    Results.saveCsv(Cfg.OutfilePath);
+    // Results.saveCsv(Cfg.OutfilePath);
   } catch (std::exception const& E) {
     std::cerr << E.what();
     return EXIT_FAILURE;
