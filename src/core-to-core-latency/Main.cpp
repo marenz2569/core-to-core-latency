@@ -19,7 +19,12 @@ auto main(int Argc, const char** Argv) -> int {
 
     auto* Memory = firestarter::AlignedAlloc::malloc(static_cast<std::size_t>(64) * Cfg.NumberOfCachelines);
 
-    auto ChaToCachelines = cclat::CachelineToChaMapper::run(Memory, Cfg.NumberOfCachelines);
+    auto ChaToCachelines =
+        cclat::CachelineToChaMapper::run(Memory, Cfg.NumberOfCachelines, /*NumberOfCachelineReads=*/1000);
+
+    for (const auto& [Key, Values] : ChaToCachelines) {
+      std::cout << "Cha index: " << Key << " contains " << Values.size() << " values" << '\n';
+    }
 
     // auto CoreToCha = cclat::ChaToCoreMapper::run(ChaToCachelines);
 
