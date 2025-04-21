@@ -1,5 +1,7 @@
 #include "core-to-core-latency/CachelineToChaMapper.hpp"
+#include "types.h"
 
+#include <cpucounters.h>
 #include <cstddef>
 #include <cstdint>
 
@@ -9,6 +11,26 @@ auto CachelineToChaMapper::run(void* Cachelines, std::size_t NumberOfCachelines,
                                std::size_t NumberOfCachelineReads) -> ChaToCachelinesMap {
   ChaToCachelinesMap ChaToCachelines;
 
+  // start the counter on all CHAs
+  auto* Pcm = pcm::PCM::getInstance();
+  auto Pmu = pcm::ServerUncorePMUs(/*socket_=*/0, /*pcm=*/Pcm);
+
+  {
+    std::array<pcm::uint64, 4> CboConfigMap = {0, 0, 0, 0};
+
+    switch (Pcm->getCPUFamilyModel()) {
+    // Sapphire Rappids
+    case pcm::PCM::SPR:
+      // perfmon/SPR/events/sapphirerapids_uncore_experimental.json
+      // UNC_CHA_REQUESTS.READS_LOCAL + UNC_CHA_REQUESTS.READS_REMOTE
+      CboConfigMap[0] = CBO_MSR_PMON_CTL_EVENT(0x50) + CBO_MSR_PMON_CTL_UMASK((1 + 2));
+    default:
+      static_assert(true, "Error: CachelineToChaMapper not implemented for this CPUFamilyModel");
+    }
+
+    Pcm->programCboRaw(CboConfigMap.data(), 0, 0);
+  }
+
   for (auto CachelineIndex = 0; CachelineIndex < NumberOfCachelines; CachelineIndex++) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     auto* Cacheline = static_cast<uint8_t*>(Cachelines) + static_cast<ptrdiff_t>(64 * CachelineIndex);
@@ -16,7 +38,7 @@ auto CachelineToChaMapper::run(void* Cachelines, std::size_t NumberOfCachelines,
     // flush, read, flush and repeat. the uncore counter for CHA reads will increment if this cacheline is in the
     // counter.
 
-    // TODO: start the counter on all CHAs
+    auto Before = Pcm->getServerUncoreCounterState(0);
 
     volatile uint8_t Sum = 0;
     for (auto I = 0; I < NumberOfCachelineReads; I++) {
@@ -31,13 +53,28 @@ auto CachelineToChaMapper::run(void* Cachelines, std::size_t NumberOfCachelines,
 
     (void)Sum;
 
-    // TODO: stop the counter on all CHAs
+    // stop the counter on all CHAs
+    auto After = Pcm->getServerUncoreCounterState(0);
 
-    // TODO: find the CHA index where approximatly NumberOfCachelineReads occured.
+    // map the difference of counter values index by the CHA box.
+    std::map<uint64_t, uint64_t> ChaToCounterValueMap;
 
-    auto ChaIndex = 0;
+    // create the differnece of the measurement value.
+    for (auto ChaIndex = 0; ChaIndex < Pmu.getNumMC(); ChaIndex++) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+      ChaToCounterValueMap[ChaIndex] = After.M2MCounter[ChaIndex][0] - Before.M2MCounter[ChaIndex][0];
+    }
 
-    ChaToCachelines[ChaIndex].emplace_back(Cacheline);
+    // find the CHA index where approximatly NumberOfCachelineReads occured.
+    uint64_t SelectedChaIndex{};
+
+    for (const auto& [Cha, Value] : ChaToCounterValueMap) {
+      if (Value > static_cast<std::size_t>(0.9 * static_cast<double>(NumberOfCachelineReads))) {
+        SelectedChaIndex = Cha;
+      }
+    }
+
+    ChaToCachelines[SelectedChaIndex].emplace_back(Cacheline);
   }
 
   return ChaToCachelines;

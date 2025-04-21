@@ -57,9 +57,11 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 add_subdirectory(lib/FIRESTARTER)
+add_subdirectory(lib/pcm)
 
 include_directories(include)
 include_directories(lib/cxxopts/include)
+include_directories(lib/pcm/src)
 
 add_subdirectory(src)
 

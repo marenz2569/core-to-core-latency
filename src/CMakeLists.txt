@@ -10,4 +10,5 @@ target_link_libraries(core-to-core-latency
     Threads::Threads
     firestartercore
     asmjit::asmjit
+    PCM_STATIC
     )

@@ -4,3 +4,6 @@
 [submodule "lib/FIRESTARTER"]
 	path = lib/FIRESTARTER
 	url = https://github.com/tud-zih-energy/FIRESTARTER.git
+[submodule "lib/pcm"]
+	path = lib/pcm
+	url = https://github.com/intel/pcm.git
