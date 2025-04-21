@@ -15,6 +15,9 @@ struct Config {
   /// The argument count from the command line.
   int Argc;
 
+  /// The number of cache lines to be used by the experiment
+  unsigned NumberOfCachelines;
+
   /// The number of unrolls of the experiment loop
   unsigned UnrollCount;
 

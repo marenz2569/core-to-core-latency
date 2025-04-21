@@ -17,6 +17,7 @@ Config::Config(int Argc, const char** Argv)
 
   // clang-format off
   Parser.add_options()
+    ("num-cachelines", "The number of cache lines to be used by the experiment", cxxopts::value<unsigned>()->default_value("16384"))
     ("unroll", "The number of unrolls of the experiment loop", cxxopts::value<unsigned>()->default_value("16"))
     ("inner-iterations", "The number of iteration of the experiment loop", cxxopts::value<unsigned>()->default_value("2048"))
     ("outer-iterations", "The number of iterations used to average the result", cxxopts::value<unsigned>()->default_value("16"))
@@ -29,6 +30,7 @@ Config::Config(int Argc, const char** Argv)
   try {
     auto Options = Parser.parse(Argc, Argv);
 
+    NumberOfCachelines = Options["num-cachelines"].as<unsigned>();
     UnrollCount = Options["unroll"].as<unsigned>();
     InnerIterations = Options["inner-iterations"].as<unsigned>();
     OuterIterations = Options["outer-iterations"].as<unsigned>();

@@ -1,7 +1,10 @@
+#include "core-to-core-latency/CachelineToChaMapper.hpp"
 #include "core-to-core-latency/Config.hpp"
 #include "core-to-core-latency/CoreToCoreLatencyTest.hpp"
 #include "core-to-core-latency/TestList.hpp"
 
+#include <cstddef>
+#include <firestarter/AlignedAlloc.hpp>
 #include <iostream>
 
 auto main(int Argc, const char** Argv) -> int {
@@ -13,6 +16,12 @@ auto main(int Argc, const char** Argv) -> int {
     cclat::Config Cfg{Argc, Argv};
 
     const auto Tests = cclat::TestList::fromCpus(Cfg.CpuBinding);
+
+    auto* Memory = firestarter::AlignedAlloc::malloc(static_cast<std::size_t>(64) * Cfg.NumberOfCachelines);
+
+    auto ChaToCachelines = cclat::CachelineToChaMapper::run(Memory, Cfg.NumberOfCachelines);
+
+    // auto CoreToCha = cclat::ChaToCoreMapper::run(ChaToCachelines);
 
     cclat::CoreToCoreLatencyTest CCLat;
 
