@@ -1,21 +1,21 @@
 #include "core-to-core-latency/ChaToCoreMapper.hpp"
 #include "firestarter/CPUTopology.hpp"
 
+#include <algorithm>
 #include <cpucounters.h>
 #include <cstddef>
 #include <cstdint>
+#include <sys/types.h>
 
 namespace cclat {
 
 auto ChaToCoreMapper::run(const ChaToCachelinesMap& ChaToCachelines, const std::size_t NumberOfCachelineReads,
-                          const std::set<uint64_t>& Cpus) -> CoreToChaMap {
+                          const std::set<uint64_t>& Cpus, const uint64_t SocketIndex) -> CoreToChaMap {
   CoreToChaMap CoreToCha;
   firestarter::CPUTopology Topology;
-  auto SocketIndex = 0U;
 
   // start the counter on all CHAs
   auto* Pcm = pcm::PCM::getInstance();
-  // TODO: add socket index
   auto Pmu = pcm::ServerUncorePMUs(/*socket_=*/SocketIndex, /*pcm=*/Pcm);
 
   {
@@ -53,6 +53,8 @@ auto ChaToCoreMapper::run(const ChaToCachelinesMap& ChaToCachelines, const std::
 
   // for each core access cache lines of all cha boxes and find the cache lines with the lowest read latency.
   for (const auto& Cpu : Cpus) {
+    // Map from CHA to the sum of all ring counter values
+    std::map<uint64_t, uint64_t> ChaToCounterValueSum;
 
     // Read Cache lines into L3.
     Topology.bindCallerToOsIndex(Cpu);
@@ -60,11 +62,12 @@ auto ChaToCoreMapper::run(const ChaToCachelinesMap& ChaToCachelines, const std::
     for (const auto& [Cha, Cachelines] : ChaToCachelines) {
       auto Before = Pcm->getServerUncoreCounterState(SocketIndex);
 
-      for (auto J = 0; J < 1000; J++)
       for (auto I = 0; I < NumberOfCachelineReads; I++) {
-        auto* Cacheline = static_cast<uint8_t*>(Cachelines[I]);
-        // read/write cache lines. lookups into l3 will occur here.
-        *Cacheline = *Cacheline + 1;
+        for (const auto& VoidCacheline : Cachelines) {
+          auto* Cacheline = static_cast<uint8_t*>(VoidCacheline);
+          // read/write cache lines. lookups into l3 will occur here.
+          *Cacheline = *Cacheline + 1;
+        }
       }
 
       auto After = Pcm->getServerUncoreCounterState(SocketIndex);
@@ -74,14 +77,20 @@ auto ChaToCoreMapper::run(const ChaToCachelinesMap& ChaToCachelines, const std::
       for (auto I = 0; I < 4; I++) {
         RingCounterDifferences.at(I) = After.Counters[pcm::PCM::UncorePMUIDs::CBO_PMU_ID][0][Cha][I] -
                                        Before.Counters[pcm::PCM::UncorePMUIDs::CBO_PMU_ID][0][Cha][I];
-        // std::cout << "Core: " << Cpu << " CHA: " << Cha << " CounterID: " << I
-        //           << " difference = " << RingCounterDifferences.at(I) << "\n";
       }
-        std::cout << "Core: " << Cpu << " CHA: " << Cha
-                  << " difference = " << RingCounterDifferences.at(0) + RingCounterDifferences.at(1) + RingCounterDifferences.at(2) + RingCounterDifferences.at(3)  << "\n";
+      ChaToCounterValueSum[Cha] = RingCounterDifferences.at(0) + RingCounterDifferences.at(1) +
+                                  RingCounterDifferences.at(2) + RingCounterDifferences.at(3);
+      std::cout << "Core: " << Cpu << " CHA: " << Cha << " difference = "
+                << RingCounterDifferences.at(0) + RingCounterDifferences.at(1) + RingCounterDifferences.at(2) +
+                       RingCounterDifferences.at(3)
+                << "\n";
     }
 
-    // TODO: select the correct cha based on core.
+    // Select the cha based on the minmal counter value.
+    auto MinValueIterator = std::ranges::min_element(
+        ChaToCounterValueSum, [](auto& Lhs, auto& Rhs) -> bool { return Lhs.second < Rhs.second; });
+
+    CoreToCha[Cpu] = MinValueIterator->first;
   }
 
   return CoreToCha;

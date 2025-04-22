@@ -19,9 +19,10 @@ public:
   /// \arg ChaToCachelines Cache lines associtated to cha boxes.
   /// \arg NumberOfCachelineReads The number of times each cachline is read during the benchmark.
   /// \arg Cpus The cpus that should be tested.
+  /// \arg SocketIndex The socket that is used for this benchmark
   /// \returns the map of core to cha boxes
   [[nodiscard]] static auto run(const ChaToCachelinesMap& ChaToCachelines, std::size_t NumberOfCachelineReads,
-                                const std::set<uint64_t>& Cpus) -> CoreToChaMap;
+                                const std::set<uint64_t>& Cpus, uint64_t SocketIndex) -> CoreToChaMap;
 };
 
 } // namespace cclat
