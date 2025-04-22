@@ -25,7 +25,15 @@ auto ChaToCoreMapper::run(const ChaToCachelinesMap& ChaToCachelines, const std::
     // Skylake-X
     // perfmon/SKX/events/skylakex_uncore_experimental.json
     case pcm::PCM::SKX:
-    // TODO: ICX has new value for the pmon ctl
+      // UNC_CHA_HORZ_RING_AD_IN_USE.LEFT_EVEN + UNC_CHA_HORZ_RING_AD_IN_USE.LEFT_ODD
+      CboConfigMap[0] = CBO_MSR_PMON_CTL_EVENT(0xa7) + CBO_MSR_PMON_CTL_UMASK((1 + 2));
+      // UNC_CHA_HORZ_RING_AD_IN_USE.RIGHT_EVEN + UNC_CHA_HORZ_RING_AD_IN_USE.RIGHT_ODD
+      CboConfigMap[1] = CBO_MSR_PMON_CTL_EVENT(0xa7) + CBO_MSR_PMON_CTL_UMASK((4 + 8));
+      // UNC_CHA_VERT_RING_AD_IN_USE.UP_EVEN + UNC_CHA_VERT_RING_AD_IN_USE.UP_ODD
+      CboConfigMap[2] = CBO_MSR_PMON_CTL_EVENT(0xa6) + CBO_MSR_PMON_CTL_UMASK((1 + 2));
+      // UNC_CHA_VERT_RING_AD_IN_USE.DN_EVEN + UNC_CHA_VERT_RING_AD_IN_USE.DN_ODD
+      CboConfigMap[3] = CBO_MSR_PMON_CTL_EVENT(0xa6) + CBO_MSR_PMON_CTL_UMASK((4 + 8));
+      break;
     case pcm::PCM::ICX:
     case pcm::PCM::SPR:
       // UNC_CHA_HORZ_RING_AD_IN_USE.LEFT_EVEN + UNC_CHA_HORZ_RING_AD_IN_USE.LEFT_ODD
@@ -52,6 +60,7 @@ auto ChaToCoreMapper::run(const ChaToCachelinesMap& ChaToCachelines, const std::
     for (const auto& [Cha, Cachelines] : ChaToCachelines) {
       auto Before = Pcm->getServerUncoreCounterState(SocketIndex);
 
+      for (auto J = 0; J < 1000; J++)
       for (auto I = 0; I < NumberOfCachelineReads; I++) {
         auto* Cacheline = static_cast<uint8_t*>(Cachelines[I]);
         // read/write cache lines. lookups into l3 will occur here.
@@ -65,9 +74,11 @@ auto ChaToCoreMapper::run(const ChaToCachelinesMap& ChaToCachelines, const std::
       for (auto I = 0; I < 4; I++) {
         RingCounterDifferences.at(I) = After.Counters[pcm::PCM::UncorePMUIDs::CBO_PMU_ID][0][Cha][I] -
                                        Before.Counters[pcm::PCM::UncorePMUIDs::CBO_PMU_ID][0][Cha][I];
-        std::cout << "Core: " << Cpu << " CHA: " << Cha << " CounterID: " << I
-                  << " difference = " << RingCounterDifferences.at(I) << "\n";
+        // std::cout << "Core: " << Cpu << " CHA: " << Cha << " CounterID: " << I
+        //           << " difference = " << RingCounterDifferences.at(I) << "\n";
       }
+        std::cout << "Core: " << Cpu << " CHA: " << Cha
+                  << " difference = " << RingCounterDifferences.at(0) + RingCounterDifferences.at(1) + RingCounterDifferences.at(2) + RingCounterDifferences.at(3)  << "\n";
     }
 
     // TODO: select the correct cha based on core.

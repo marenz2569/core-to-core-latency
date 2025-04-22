@@ -33,7 +33,7 @@ auto main(int Argc, const char** Argv) -> int {
       std::cout << "Cha index: " << Key << " contains " << Values.size() << " values" << '\n';
     }
 
-    auto CoreToCha = cclat::ChaToCoreMapper::run(ChaToCachelines, /*NumberOfCachelineReads=*/100, Cfg.CpuBinding);
+    auto CoreToCha = cclat::ChaToCoreMapper::run(ChaToCachelines, /*NumberOfCachelineReads=*/1000, Cfg.CpuBinding);
 
     (void)CoreToCha;
 
