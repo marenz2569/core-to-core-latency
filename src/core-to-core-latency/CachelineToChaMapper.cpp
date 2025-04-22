@@ -4,6 +4,7 @@
 #include <cpucounters.h>
 #include <cstddef>
 #include <cstdint>
+#include <stdexcept>
 
 namespace cclat {
 
@@ -28,8 +29,9 @@ auto CachelineToChaMapper::run(void* Cachelines, std::size_t NumberOfCachelines,
     // UNC_CHA_REQUESTS.READS_LOCAL + UNC_CHA_REQUESTS.READS_REMOTE
     case pcm::PCM::SPR:
       CboConfigMap[0] = CBO_MSR_PMON_CTL_EVENT(0x50) + CBO_MSR_PMON_CTL_UMASK((1 + 2));
+      break;
     default:
-      static_assert(true, "Error: CachelineToChaMapper not implemented for this CPUFamilyModel");
+      throw std::runtime_error("CachelineToChaMapper not implemented for this CPUFamilyModel");
     }
 
     Pcm->programCboRaw(CboConfigMap.data(), 0, 0);

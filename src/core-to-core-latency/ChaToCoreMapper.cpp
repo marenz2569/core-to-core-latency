@@ -5,6 +5,7 @@
 #include <cpucounters.h>
 #include <cstddef>
 #include <cstdint>
+#include <stdexcept>
 #include <sys/types.h>
 
 namespace cclat {
@@ -44,8 +45,9 @@ auto ChaToCoreMapper::run(const ChaToCachelinesMap& ChaToCachelines, const std::
       CboConfigMap[2] = CBO_MSR_PMON_CTL_EVENT(0xb0) + CBO_MSR_PMON_CTL_UMASK((1 + 2));
       // UNC_CHA_VERT_RING_AD_IN_USE.DN_EVEN + UNC_CHA_VERT_RING_AD_IN_USE.DN_ODD
       CboConfigMap[3] = CBO_MSR_PMON_CTL_EVENT(0xb0) + CBO_MSR_PMON_CTL_UMASK((4 + 8));
+      break;
     default:
-      static_assert(true, "Error: CachelineToChaMapper not implemented for this CPUFamilyModel");
+      throw std::runtime_error("ChaToCoreMapper not implemented for this CPUFamilyModel");
     }
 
     Pcm->programCboRaw(CboConfigMap.data(), 0, 0);
