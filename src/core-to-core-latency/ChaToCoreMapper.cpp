@@ -14,17 +14,37 @@ auto ChaToCoreMapper::run(const ChaToCachelinesMap& ChaToCachelines, const std::
 
   // for each core access cache lines of all cha boxes and find the cache lines with the lowest read latency.
   for (const auto& Cpu : Cpus) {
-      // Read Cache lines into L3 of other than measureing core.
+
+    // Use the first or second cpu of the list.
+    auto ReadingCpu = *Cpus.begin();
+    if (ReadingCpu == Cpu) {
+      ReadingCpu = *(Cpus.begin()++);
+    }
+
+    // Read Cache lines into L3 of other than measureing core.
+    Topology.bindCallerToOsIndex(ReadingCpu);
+
     for (const auto& [Cha, Cachelines] : ChaToCachelines) {
-	    Topology.bindCallerToOsIndex(0);
+
       volatile uint8_t Sum = 0;
       for (auto I = 0; I < NumberOfCachelineReads; I++) {
         auto* Cacheline = static_cast<uint8_t*>(Cachelines[I]);
+
+        // flush cacheline
+        asm __volatile__("mfence\n"
+                         "lfence\n"
+                         "clflush (%[addr])\n"
+                         "mfence\n"
+                         "lfence" ::[addr] "r"(Cacheline)
+                         : "memory");
+
+        // read cache line into cache of other core (this includes the shared l3 cache)
         Sum = Sum + *Cacheline;
       }
-      (void) Sum;
+      (void)Sum;
     }
 
+    // perform read access time measurement from the current cpu.
     Topology.bindCallerToOsIndex(Cpu);
     for (const auto& [Cha, Cachelines] : ChaToCachelines) {
       uint64_t TotalChaAccessTime = 0;
@@ -37,14 +57,6 @@ auto ChaToCoreMapper::run(const ChaToCachelinesMap& ChaToCachelines, const std::
         uint64_t RdxStop{};
 
         auto* Cacheline = static_cast<uint8_t*>(Cachelines[I]);
-
-        // flush cacheline
-        // asm __volatile__("mfence\n"
-        //                 "lfence\n"
-        //                 "clflush (%[addr])\n"
-        //                 "mfence\n"
-        //                 "lfence" ::[addr] "r"(Cacheline)
-        //                 : "memory");
 
         // record read access time
         __asm__ __volatile__("rdtscp" : "=a"(RaxStart), "=d"(RdxStart)::);
