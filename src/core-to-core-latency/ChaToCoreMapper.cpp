@@ -11,84 +11,69 @@ auto ChaToCoreMapper::run(const ChaToCachelinesMap& ChaToCachelines, const std::
                           const std::set<uint64_t>& Cpus) -> CoreToChaMap {
   CoreToChaMap CoreToCha;
   firestarter::CPUTopology Topology;
+  auto SocketIndex = 0U;
+
+  // start the counter on all CHAs
+  auto* Pcm = pcm::PCM::getInstance();
+  // TODO: add socket index
+  auto Pmu = pcm::ServerUncorePMUs(/*socket_=*/SocketIndex, /*pcm=*/Pcm);
+
+  {
+    std::array<pcm::uint64, 4> CboConfigMap = {0, 0, 0, 0};
+
+    switch (Pcm->getCPUFamilyModel()) {
+    // Skylake-X
+    // perfmon/SKX/events/skylakex_uncore_experimental.json
+    case pcm::PCM::SKX:
+    // TODO: ICX has new value for the pmon ctl
+    case pcm::PCM::ICX:
+    case pcm::PCM::SPR:
+      // UNC_CHA_HORZ_RING_AD_IN_USE.LEFT_EVEN + UNC_CHA_HORZ_RING_AD_IN_USE.LEFT_ODD
+      CboConfigMap[0] = CBO_MSR_PMON_CTL_EVENT(0xb6) + CBO_MSR_PMON_CTL_UMASK((1 + 2));
+      // UNC_CHA_HORZ_RING_AD_IN_USE.RIGHT_EVEN + UNC_CHA_HORZ_RING_AD_IN_USE.RIGHT_ODD
+      CboConfigMap[1] = CBO_MSR_PMON_CTL_EVENT(0xb6) + CBO_MSR_PMON_CTL_UMASK((4 + 8));
+      // UNC_CHA_VERT_RING_AD_IN_USE.UP_EVEN + UNC_CHA_VERT_RING_AD_IN_USE.UP_ODD
+      CboConfigMap[2] = CBO_MSR_PMON_CTL_EVENT(0xb0) + CBO_MSR_PMON_CTL_UMASK((1 + 2));
+      // UNC_CHA_VERT_RING_AD_IN_USE.DN_EVEN + UNC_CHA_VERT_RING_AD_IN_USE.DN_ODD
+      CboConfigMap[3] = CBO_MSR_PMON_CTL_EVENT(0xb0) + CBO_MSR_PMON_CTL_UMASK((4 + 8));
+    default:
+      static_assert(true, "Error: CachelineToChaMapper not implemented for this CPUFamilyModel");
+    }
+
+    Pcm->programCboRaw(CboConfigMap.data(), 0, 0);
+  }
 
   // for each core access cache lines of all cha boxes and find the cache lines with the lowest read latency.
   for (const auto& Cpu : Cpus) {
 
-    // Use the first or second cpu of the list.
-    auto ReadingCpu = *Cpus.begin();
-    if (ReadingCpu == Cpu) {
-      ReadingCpu = *(Cpus.begin()++);
-    }
-
-    // Read Cache lines into L3 of other than measureing core.
-    Topology.bindCallerToOsIndex(ReadingCpu);
-
-    for (const auto& [Cha, Cachelines] : ChaToCachelines) {
-
-      volatile uint8_t Sum = 0;
-      for (auto I = 0; I < NumberOfCachelineReads; I++) {
-        auto* Cacheline = static_cast<uint8_t*>(Cachelines[I]);
-
-        // flush cacheline
-        asm __volatile__("mfence\n"
-                         "lfence\n"
-                         "clflush (%[addr])\n"
-                         "mfence\n"
-                         "lfence" ::[addr] "r"(Cacheline)
-                         : "memory");
-
-        // read cache line into cache of other core (this includes the shared l3 cache)
-        Sum = Sum + *Cacheline;
-      }
-      (void)Sum;
-    }
-
-    // perform read access time measurement from the current cpu.
+    // Read Cache lines into L3.
     Topology.bindCallerToOsIndex(Cpu);
 
-    std::map<uint64_t, uint64_t> ChaAccessTimes;
-
     for (const auto& [Cha, Cachelines] : ChaToCachelines) {
-      uint64_t TotalChaAccessTime = 0;
+      auto Before = Pcm->getServerUncoreCounterState(SocketIndex);
 
       volatile uint8_t Sum = 0;
       for (auto I = 0; I < NumberOfCachelineReads; I++) {
-        uint64_t RaxStart{};
-        uint64_t RdxStart{};
-        uint64_t RaxStop{};
-        uint64_t RdxStop{};
-
         auto* Cacheline = static_cast<uint8_t*>(Cachelines[I]);
-
-        // record read access time
-        __asm__ __volatile__("rdtscp" : "=a"(RaxStart), "=d"(RdxStart)::);
+        // read cache lines. lookups into l3 will occur here.
         Sum = Sum + *Cacheline;
-        __asm__ __volatile__("rdtscp" : "=a"(RaxStop), "=d"(RdxStop)::);
-
-        auto Start = (RdxStart << 32) + RaxStart;
-        auto Stop = (RdxStop << 32) + RaxStop;
-
-        TotalChaAccessTime += Stop - Start;
       }
       (void)Sum;
 
-      ChaAccessTimes[Cha] = TotalChaAccessTime;
+      auto After = Pcm->getServerUncoreCounterState(SocketIndex);
 
-      std::cout << "Core " << Cpu << " Cha " << Cha << " access time = " << TotalChaAccessTime << "\n";
-    }
-
-    std::tuple<uint64_t, uint64_t> MinimalAccessTimeElement = *ChaAccessTimes.begin();
-
-    for (const auto& [Cha, Time] : ChaAccessTimes) {
-      const auto& [MinCha, MinTime] = MinimalAccessTimeElement;
-      if (Time < MinTime) {
-        MinimalAccessTimeElement = {Cha, Time};
+      // create the differnece of the measurement value.
+      for (auto ChaIndex = 0; ChaIndex < Pcm->getMaxNumOfUncorePMUs(pcm::PCM::UncorePMUIDs::CBO_PMU_ID, SocketIndex);
+           ChaIndex++) {
+        std::array<pcm::uint64, 4> RingCounterDifferences = {0, 0, 0, 0};
+        for (auto I = 0; I < 4; I++) {
+          RingCounterDifferences.at(I) = After.Counters[pcm::PCM::UncorePMUIDs::CBO_PMU_ID][0][ChaIndex][I] -
+                                         Before.Counters[pcm::PCM::UncorePMUIDs::CBO_PMU_ID][0][ChaIndex][I];
+          std::cout << "Core: " << Cpu << " CHA: " << ChaIndex << " CounterID: " << I
+                    << " difference = " << RingCounterDifferences.at(I) << "\n";
+        }
       }
     }
-
-    std::cout << "Core " << Cpu << " mapped to Cha " << std::get<0>(MinimalAccessTimeElement)
-              << " with acces tiem = " << std::get<1>(MinimalAccessTimeElement) << "\n";
 
     // TODO: select the correct cha based on core.
   }
