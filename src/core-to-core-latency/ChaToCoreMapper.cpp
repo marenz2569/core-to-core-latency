@@ -52,13 +52,11 @@ auto ChaToCoreMapper::run(const ChaToCachelinesMap& ChaToCachelines, const std::
     for (const auto& [Cha, Cachelines] : ChaToCachelines) {
       auto Before = Pcm->getServerUncoreCounterState(SocketIndex);
 
-      volatile uint8_t Sum = 0;
       for (auto I = 0; I < NumberOfCachelineReads; I++) {
         auto* Cacheline = static_cast<uint8_t*>(Cachelines[I]);
-        // read cache lines. lookups into l3 will occur here.
-        Sum = Sum + *Cacheline;
+        // read/write cache lines. lookups into l3 will occur here.
+        *Cacheline = *Cacheline + 1;
       }
-      (void)Sum;
 
       auto After = Pcm->getServerUncoreCounterState(SocketIndex);
 
