@@ -14,8 +14,18 @@ auto ChaToCoreMapper::run(const ChaToCachelinesMap& ChaToCachelines, const std::
 
   // for each core access cache lines of all cha boxes and find the cache lines with the lowest read latency.
   for (const auto& Cpu : Cpus) {
-    Topology.bindCallerToOsIndex(Cpu);
+      // Read Cache lines into L3 of other than measureing core.
+    for (const auto& [Cha, Cachelines] : ChaToCachelines) {
+	    Topology.bindCallerToOsIndex(0);
+      volatile uint8_t Sum = 0;
+      for (auto I = 0; I < NumberOfCachelineReads; I++) {
+        auto* Cacheline = static_cast<uint8_t*>(Cachelines[I]);
+        Sum = Sum + *Cacheline;
+      }
+      (void) Sum;
+    }
 
+    Topology.bindCallerToOsIndex(Cpu);
     for (const auto& [Cha, Cachelines] : ChaToCachelines) {
       uint64_t TotalChaAccessTime = 0;
 
@@ -29,12 +39,12 @@ auto ChaToCoreMapper::run(const ChaToCachelinesMap& ChaToCachelines, const std::
         auto* Cacheline = static_cast<uint8_t*>(Cachelines[I]);
 
         // flush cacheline
-        asm __volatile__("mfence\n"
-                         "lfence\n"
-                         "clflush (%[addr])\n"
-                         "mfence\n"
-                         "lfence" ::[addr] "r"(Cacheline)
-                         : "memory");
+        // asm __volatile__("mfence\n"
+        //                 "lfence\n"
+        //                 "clflush (%[addr])\n"
+        //                 "mfence\n"
+        //                 "lfence" ::[addr] "r"(Cacheline)
+        //                 : "memory");
 
         // record read access time
         __asm__ __volatile__("rdtscp" : "=a"(RaxStart), "=d"(RdxStart)::);
