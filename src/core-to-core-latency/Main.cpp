@@ -29,14 +29,16 @@ auto main(int Argc, const char** Argv) -> int {
     auto ChaToCachelines = cclat::CachelineToChaMapper::run(Memory, Cfg.NumberOfCachelines,
                                                             /*NumberOfCachelineReads=*/100, Cfg.SocketIndex);
 
-    for (const auto& [Key, Values] : ChaToCachelines) {
-      std::cout << "Cha index: " << Key << " contains " << Values.size() << " values" << '\n';
+    for (const auto& [Cha, Values] : ChaToCachelines) {
+      std::cout << "Cha index: " << Cha << " contains " << Values.size() << " values" << '\n';
     }
 
     auto CoreToCha =
         cclat::ChaToCoreMapper::run(ChaToCachelines, /*NumberOfCachelineReads=*/1000, Cfg.CpuBinding, Cfg.SocketIndex);
 
-    (void)CoreToCha;
+    for (const auto& [Core, Cha] : CoreToCha) {
+      std::cout << "Core index: " << Core << " CHA index: " << Cha << '\n';
+    }
 
     // auto CoreToCha = cclat::ChaToCoreMapper::run(ChaToCachelines);
 
