@@ -83,7 +83,7 @@ auto ChaToCoreMapper::run(const ChaToCachelinesMap& ChaToCachelines, const std::
     for (const auto& [Cha, Time] : ChaAccessTimes) {
       const auto& [MinCha, MinTime] = MinimalAccessTimeElement;
       if (Time < MinTime) {
-        MinimalAccessTimeElement = {Cha, MinTime};
+        MinimalAccessTimeElement = {Cha, Time};
       }
     }
 
