@@ -19,10 +19,14 @@ auto CachelineToChaMapper::run(void* Cachelines, std::size_t NumberOfCachelines,
     std::array<pcm::uint64, 4> CboConfigMap = {0, 0, 0, 0};
 
     switch (Pcm->getCPUFamilyModel()) {
+    // Skylake-X
+    // perfmon/SKX/events/skylakex_uncore.json
+    // UNC_CHA_REQUESTS.READS
+    case pcm::PCM::SKX:
     // Sapphire Rappids
+    // perfmon/SPR/events/sapphirerapids_uncore_experimental.json
+    // UNC_CHA_REQUESTS.READS_LOCAL + UNC_CHA_REQUESTS.READS_REMOTE
     case pcm::PCM::SPR:
-      // perfmon/SPR/events/sapphirerapids_uncore_experimental.json
-      // UNC_CHA_REQUESTS.READS_LOCAL + UNC_CHA_REQUESTS.READS_REMOTE
       CboConfigMap[0] = CBO_MSR_PMON_CTL_EVENT(0x50) + CBO_MSR_PMON_CTL_UMASK((1 + 2));
     default:
       static_assert(true, "Error: CachelineToChaMapper not implemented for this CPUFamilyModel");
