@@ -61,15 +61,12 @@ auto ChaToCoreMapper::run(const ChaToCachelinesMap& ChaToCachelines, const std::
       auto After = Pcm->getServerUncoreCounterState(SocketIndex);
 
       // create the differnece of the measurement value.
-      for (auto ChaIndex = 0; ChaIndex < Pcm->getMaxNumOfUncorePMUs(pcm::PCM::UncorePMUIDs::CBO_PMU_ID, SocketIndex);
-           ChaIndex++) {
-        std::array<pcm::uint64, 4> RingCounterDifferences = {0, 0, 0, 0};
-        for (auto I = 0; I < 4; I++) {
-          RingCounterDifferences.at(I) = After.Counters[pcm::PCM::UncorePMUIDs::CBO_PMU_ID][0][ChaIndex][I] -
-                                         Before.Counters[pcm::PCM::UncorePMUIDs::CBO_PMU_ID][0][ChaIndex][I];
-          std::cout << "Core: " << Cpu << " CHA: " << ChaIndex << " CounterID: " << I
-                    << " difference = " << RingCounterDifferences.at(I) << "\n";
-        }
+      std::array<pcm::uint64, 4> RingCounterDifferences = {0, 0, 0, 0};
+      for (auto I = 0; I < 4; I++) {
+        RingCounterDifferences.at(I) = After.Counters[pcm::PCM::UncorePMUIDs::CBO_PMU_ID][0][Cha][I] -
+                                       Before.Counters[pcm::PCM::UncorePMUIDs::CBO_PMU_ID][0][Cha][I];
+        std::cout << "Core: " << Cpu << " CHA: " << Cha << " CounterID: " << I
+                  << " difference = " << RingCounterDifferences.at(I) << "\n";
       }
     }
 
