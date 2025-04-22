@@ -17,6 +17,7 @@ Config::Config(int Argc, const char** Argv)
 
   // clang-format off
   Parser.add_options()
+    ("socket-index", "The index of the socket that should be used by the experiment", cxxopts::value<unsigned>()->default_value("0"))
     ("num-cachelines", "The number of cache lines to be used by the experiment", cxxopts::value<unsigned>()->default_value("16384"))
     ("unroll", "The number of unrolls of the experiment loop", cxxopts::value<unsigned>()->default_value("16"))
     ("inner-iterations", "The number of iteration of the experiment loop", cxxopts::value<unsigned>()->default_value("2048"))
@@ -30,6 +31,7 @@ Config::Config(int Argc, const char** Argv)
   try {
     auto Options = Parser.parse(Argc, Argv);
 
+    SocketIndex = Options["socket-index"].as<unsigned>();
     NumberOfCachelines = Options["num-cachelines"].as<unsigned>();
     UnrollCount = Options["unroll"].as<unsigned>();
     InnerIterations = Options["inner-iterations"].as<unsigned>();

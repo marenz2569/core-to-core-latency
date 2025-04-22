@@ -19,9 +19,10 @@ public:
   /// \arg Cachelines The pointer to the cache lines
   /// \arg NumberOfCachelines The number of cache lines that are pointed to by the Cachelines pointer.
   /// \arg NumberOfCachelineReads The number of times each cachline is read during the benchmark.
+  /// \arg SocketIndex The socket that is used for this benchmark
   /// \returns the map of cha boxes to cache lines
-  [[nodiscard]] static auto run(void* Cachelines, std::size_t NumberOfCachelines,
-                                std::size_t NumberOfCachelineReads) -> ChaToCachelinesMap;
+  [[nodiscard]] static auto run(void* Cachelines, std::size_t NumberOfCachelines, std::size_t NumberOfCachelineReads,
+                                uint64_t SocketIndex) -> ChaToCachelinesMap;
 };
 
 } // namespace cclat

@@ -15,6 +15,9 @@ struct Config {
   /// The argument count from the command line.
   int Argc;
 
+  /// The index of the socket that should be used by the experiment
+  unsigned SocketIndex;
+
   /// The number of cache lines to be used by the experiment
   unsigned NumberOfCachelines;
 

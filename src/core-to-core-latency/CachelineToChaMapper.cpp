@@ -7,13 +7,13 @@
 
 namespace cclat {
 
-auto CachelineToChaMapper::run(void* Cachelines, std::size_t NumberOfCachelines,
-                               std::size_t NumberOfCachelineReads) -> ChaToCachelinesMap {
+auto CachelineToChaMapper::run(void* Cachelines, std::size_t NumberOfCachelines, std::size_t NumberOfCachelineReads,
+                               uint64_t SocketIndex) -> ChaToCachelinesMap {
   ChaToCachelinesMap ChaToCachelines;
 
   // start the counter on all CHAs
   auto* Pcm = pcm::PCM::getInstance();
-  auto Pmu = pcm::ServerUncorePMUs(/*socket_=*/0, /*pcm=*/Pcm);
+  auto Pmu = pcm::ServerUncorePMUs(/*socket_=*/SocketIndex, /*pcm=*/Pcm);
 
   {
     std::array<pcm::uint64, 4> CboConfigMap = {0, 0, 0, 0};
@@ -42,7 +42,7 @@ auto CachelineToChaMapper::run(void* Cachelines, std::size_t NumberOfCachelines,
     // flush, read, flush and repeat. the uncore counter for CHA reads will increment if this cacheline is in the
     // counter.
 
-    auto Before = Pcm->getServerUncoreCounterState(0);
+    auto Before = Pcm->getServerUncoreCounterState(SocketIndex);
 
     volatile uint8_t Sum = 0;
     for (auto I = 0; I < NumberOfCachelineReads; I++) {
@@ -58,15 +58,17 @@ auto CachelineToChaMapper::run(void* Cachelines, std::size_t NumberOfCachelines,
     (void)Sum;
 
     // stop the counter on all CHAs
-    auto After = Pcm->getServerUncoreCounterState(0);
+    auto After = Pcm->getServerUncoreCounterState(SocketIndex);
 
     // map the difference of counter values index by the CHA box.
     std::map<uint64_t, uint64_t> ChaToCounterValueMap;
 
     // create the differnece of the measurement value.
-    for (auto ChaIndex = 0; ChaIndex < Pcm->getMaxNumOfUncorePMUs(pcm::PCM::UncorePMUIDs::CBO_PMU_ID, 0); ChaIndex++) {
+    for (auto ChaIndex = 0; ChaIndex < Pcm->getMaxNumOfUncorePMUs(pcm::PCM::UncorePMUIDs::CBO_PMU_ID, SocketIndex);
+         ChaIndex++) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-      ChaToCounterValueMap[ChaIndex] = After.Counters[pcm::PCM::UncorePMUIDs::CBO_PMU_ID][0][ChaIndex][0] - Before.Counters[pcm::PCM::UncorePMUIDs::CBO_PMU_ID][0][ChaIndex][0];
+      ChaToCounterValueMap[ChaIndex] = After.Counters[pcm::PCM::UncorePMUIDs::CBO_PMU_ID][0][ChaIndex][0] -
+                                       Before.Counters[pcm::PCM::UncorePMUIDs::CBO_PMU_ID][0][ChaIndex][0];
     }
 
     // find the CHA index where approximatly NumberOfCachelineReads occured.
