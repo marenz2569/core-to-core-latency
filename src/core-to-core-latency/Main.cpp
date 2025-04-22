@@ -17,7 +17,9 @@ auto main(int Argc, const char** Argv) -> int {
 
     const auto Tests = cclat::TestList::fromCpus(Cfg.CpuBinding);
 
-    auto* Memory = firestarter::AlignedAlloc::malloc(static_cast<std::size_t>(64) * Cfg.NumberOfCachelines);
+    // Create a 4KiB page aligned memory allocation
+    auto* Memory =
+        firestarter::AlignedAlloc::malloc(static_cast<std::size_t>(64) * Cfg.NumberOfCachelines, /*Alignment=*/4096);
 
     auto ChaToCachelines =
         cclat::CachelineToChaMapper::run(Memory, Cfg.NumberOfCachelines, /*NumberOfCachelineReads=*/1000);
