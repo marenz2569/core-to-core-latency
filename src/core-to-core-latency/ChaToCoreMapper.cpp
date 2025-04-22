@@ -46,6 +46,9 @@ auto ChaToCoreMapper::run(const ChaToCachelinesMap& ChaToCachelines, const std::
 
     // perform read access time measurement from the current cpu.
     Topology.bindCallerToOsIndex(Cpu);
+
+    std::map<uint64_t, uint64_t> ChaAccessTimes;
+
     for (const auto& [Cha, Cachelines] : ChaToCachelines) {
       uint64_t TotalChaAccessTime = 0;
 
@@ -70,8 +73,22 @@ auto ChaToCoreMapper::run(const ChaToCachelinesMap& ChaToCachelines, const std::
       }
       (void)Sum;
 
+      ChaAccessTimes[Cha] = TotalChaAccessTime;
+
       std::cout << "Core " << Cpu << " Cha " << Cha << " access time = " << TotalChaAccessTime << "\n";
     }
+
+    std::tuple<uint64_t, uint64_t> MinimalAccessTimeElement = *ChaAccessTimes.begin();
+
+    for (const auto& [Cha, Time] : ChaAccessTimes) {
+      const auto& [MinCha, MinTime] = MinimalAccessTimeElement;
+      if (Time < MinTime) {
+        MinimalAccessTimeElement = {Cha, MinTime};
+      }
+    }
+
+    std::cout << "Core " << Cpu << " mapped to Cha " << std::get<0>(MinimalAccessTimeElement)
+              << " with acces tiem = " << std::get<1>(MinimalAccessTimeElement) << "\n";
 
     // TODO: select the correct cha based on core.
   }
