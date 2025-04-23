@@ -29,9 +29,9 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
 
       auto Before = Pcm->getServerUncoreCounterState(SocketIndex);
 
-      std::thread LocalThread(localThreadFunction, std::cref(Cachelines), NumberOfCachelineReads, LocalCore,
+      std::thread LocalThread(localThreadFunction, Cachelines[0], NumberOfCachelineReads, LocalCore,
                               std::cref(ThreadBindFunction));
-      std::thread RemoteThread(remoteThreadFunction, std::cref(Cachelines), NumberOfCachelineReads, RemoteCore,
+      std::thread RemoteThread(remoteThreadFunction, Cachelines[0], NumberOfCachelineReads, RemoteCore,
                                std::cref(ThreadBindFunction));
 
       RemoteThread.join();
@@ -61,33 +61,27 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
   return CoreToChaBusyPath;
 }
 
-void CoreTrafficTest::localThreadFunction(const std::vector<void*>& Cachelines,
-                                          const std::size_t NumberOfCachelineReads, uint64_t CpuId,
+void CoreTrafficTest::localThreadFunction(void* VoidCacheline, const std::size_t NumberOfCachelineReads, uint64_t CpuId,
                                           const std::function<void(unsigned)>& ThreadBindFunction) {
   ThreadBindFunction(CpuId);
 
   for (auto I = 0; I < NumberOfCachelineReads; I++) {
-    for (const auto& VoidCacheline : Cachelines) {
-      auto* Cacheline = static_cast<uint8_t*>(VoidCacheline);
-      // read/write cache lines. lookups into l3 will occur here.
-      *Cacheline = *Cacheline + 1;
-    }
+    auto* Cacheline = static_cast<uint8_t*>(VoidCacheline);
+    // read/write cache lines. lookups into l3 will occur here.
+    *Cacheline = *Cacheline + 1;
   }
 }
 
-void CoreTrafficTest::remoteThreadFunction(const std::vector<void*>& Cachelines,
-                                           const std::size_t NumberOfCachelineReads, uint64_t CpuId,
-                                           const std::function<void(unsigned)>& ThreadBindFunction) {
+void CoreTrafficTest::remoteThreadFunction(void* VoidCacheline, const std::size_t NumberOfCachelineReads,
+                                           uint64_t CpuId, const std::function<void(unsigned)>& ThreadBindFunction) {
   ThreadBindFunction(CpuId);
 
   uint8_t Sum{};
 
   for (auto I = 0; I < NumberOfCachelineReads; I++) {
-    for (const auto& VoidCacheline : Cachelines) {
-      auto* Cacheline = static_cast<uint8_t*>(VoidCacheline);
-      // read/write cache lines. lookups into l3 will occur here.
-      Sum += *Cacheline;
-    }
+    auto* Cacheline = static_cast<uint8_t*>(VoidCacheline);
+    // read/write cache lines. lookups into l3 will occur here.
+    Sum += *Cacheline;
   }
 
   (void)Sum;

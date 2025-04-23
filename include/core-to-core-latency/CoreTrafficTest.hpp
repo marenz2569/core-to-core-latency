@@ -32,20 +32,20 @@ public:
                                 std::size_t NumberOfCachelineReads, uint64_t SocketIndex) -> CoreToChaBusyPathMap;
 
   /// The local thread function that reads and writes to the cachelines.
-  /// \arg Cachelines The cachelines to which the thread read and writes
+  /// \arg Cachelines The cacheline to which the thread read and writes
   /// \arg NumberOfCachelineReads The number of times each cachline is read/written to.
   /// \arg CpuId The id of the cpu the thread runs on
   /// \arg ThreadBindFunction The function that is used to bind the thread to the supplied cpu id
-  static void localThreadFunction(const std::vector<void*>& Cachelines, std::size_t NumberOfCachelineReads,
-                                  uint64_t CpuId, const std::function<void(unsigned)>& ThreadBindFunction);
+  static void localThreadFunction(void* Cacheline, std::size_t NumberOfCachelineReads, uint64_t CpuId,
+                                  const std::function<void(unsigned)>& ThreadBindFunction);
 
   /// The remote thread function that reads the cachelines.
-  /// \arg Cachelines The cachelines to which the thread read and writes
+  /// \arg Cachelines The cacheline to which the thread read and writes
   /// \arg NumberOfCachelineReads The number of times each cachline is read
   /// \arg CpuId The id of the cpu the thread runs on
   /// \arg ThreadBindFunction The function that is used to bind the thread to the supplied cpu id
-  static void remoteThreadFunction(const std::vector<void*>& Cachelines, std::size_t NumberOfCachelineReads,
-                                   uint64_t CpuId, const std::function<void(unsigned)>& ThreadBindFunction);
+  static void remoteThreadFunction(void* Cacheline, std::size_t NumberOfCachelineReads, uint64_t CpuId,
+                                   const std::function<void(unsigned)>& ThreadBindFunction);
 };
 
 } // namespace cclat
