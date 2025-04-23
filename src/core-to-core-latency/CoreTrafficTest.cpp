@@ -94,6 +94,12 @@ void CoreTrafficTest::localThreadFunction(void* VoidCacheline, const std::size_t
     auto* Cacheline = static_cast<uint8_t*>(VoidCacheline);
     // read/write cache lines. lookups into l3 will occur here.
     *Cacheline = *Cacheline + 1;
+    asm __volatile__("mfence\n"
+                     "lfence\n"
+                     "clflush (%[addr])\n"
+                     "mfence\n"
+                     "lfence" ::[addr] "r"(Cacheline)
+                     : "memory");
   }
 }
 
@@ -107,6 +113,12 @@ void CoreTrafficTest::remoteThreadFunction(void* VoidCacheline, const std::size_
     auto* Cacheline = static_cast<uint8_t*>(VoidCacheline);
     // read/write cache lines. lookups into l3 will occur here.
     Sum += *Cacheline;
+    asm __volatile__("mfence\n"
+                     "lfence\n"
+                     "clflush (%[addr])\n"
+                     "mfence\n"
+                     "lfence" ::[addr] "r"(Cacheline)
+                     : "memory");
   }
 
   (void)Sum;
