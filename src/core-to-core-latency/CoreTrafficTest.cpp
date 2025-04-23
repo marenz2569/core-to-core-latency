@@ -67,6 +67,9 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
         }
       }
 
+      std::cout << "Local core: " << LocalCore << " Local cha: " << LocalCha << "\n";
+      std::cout << "Remote core: " << RemoteCore << " Remote cha: " << RemoteCha << "\n";
+
       for (const auto& [Cha, MinValues] : ChaMeasurements) {
         std::cout << "LocalCore: " << LocalCore << " RemoteCore: " << RemoteCore << " Cha: " << Cha
                   << " Left: " << MinValues.at(PcmRingCounters::Direction::Left)
