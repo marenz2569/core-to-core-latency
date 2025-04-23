@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <limits>
 #include <thread>
 #include <unordered_map>
 
@@ -54,6 +55,14 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
             RingCounterDifferences.at(I) = After.Counters[pcm::PCM::UncorePMUIDs::CBO_PMU_ID][0][ChaIndex][I] -
                                            Before.Counters[pcm::PCM::UncorePMUIDs::CBO_PMU_ID][0][ChaIndex][I];
           }
+
+          // initialize for std::min
+          if (!ChaMeasurements.contains(ChaIndex)) {
+            ChaMeasurements[ChaIndex] = {
+                std::numeric_limits<pcm::uint64>::max(), std::numeric_limits<pcm::uint64>::max(),
+                std::numeric_limits<pcm::uint64>::max(), std::numeric_limits<pcm::uint64>::max()};
+          }
+
           ChaMeasurements[ChaIndex] = std::min(ChaMeasurements[ChaIndex], RingCounterDifferences);
         }
       }
