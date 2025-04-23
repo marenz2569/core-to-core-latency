@@ -112,7 +112,7 @@ void CoreTrafficTest::remoteThreadFunction(void* VoidCacheline, const std::size_
                                            uint64_t CpuId, const std::function<void(unsigned)>& ThreadBindFunction) {
   ThreadBindFunction(CpuId);
 
-  volatile uint8_t Sum{};
+  uint8_t Sum{};
 
   for (auto I = 0; I < NumberOfCachelineReads; I++) {
     volatile auto* Cacheline = static_cast<uint8_t*>(VoidCacheline);
