@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <unordered_map>
 
 namespace cclat {
 
@@ -14,7 +15,7 @@ namespace cclat {
 using ChaToBusyPathMap = std::map<uint64_t, uint64_t>;
 
 // TODO use std::map with test pair
-using CoreToChaBusyPathMap = std::vector<std::pair<TestPair, std::vector<ChaToBusyPathMap>>>;
+using CoreToChaBusyPathMap = std::unordered_map<TestPair, std::vector<ChaToBusyPathMap>>;
 
 /// This class creates traffic between cores and records the traffic path on the ring interconnects between the CHA
 /// boxes.
