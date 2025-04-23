@@ -25,7 +25,7 @@ public:
   /// Determine the path on the ring which is taken between a local r/w and a remote reading core.
   /// \arg ChaToCachelines Cache lines associtated to cha boxes.
   /// \arg CoreToChaMap Chas associated to cores.
-  /// \arg NumberOfCachelineReads The number of times each cachline is read during the benchmark.
+  /// \arg NumberOfCachelineReads The number of times one cachline is read/written to during the benchmark.
   /// \arg SocketIndex The socket that is used for this benchmark
   /// \returns the map of core to cha boxes
   [[nodiscard]] static auto run(const ChaToCachelinesMap& ChaToCachelines, const CoreToChaMap& CoreToCha,
