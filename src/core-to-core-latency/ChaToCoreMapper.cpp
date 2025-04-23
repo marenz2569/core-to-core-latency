@@ -36,6 +36,12 @@ auto ChaToCoreMapper::run(const ChaToCachelinesMap& ChaToCachelines, const std::
           auto* Cacheline = static_cast<uint8_t*>(VoidCacheline);
           // read/write cache lines. lookups into l3 will occur here.
           *Cacheline = *Cacheline + 1;
+          asm __volatile__("mfence\n"
+                           "lfence\n"
+                           "clflush (%[addr])\n"
+                           "mfence\n"
+                           "lfence" ::[addr] "r"(Cacheline)
+                           : "memory");
         }
       }
 
