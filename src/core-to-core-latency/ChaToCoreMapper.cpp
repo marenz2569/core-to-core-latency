@@ -18,7 +18,7 @@ auto ChaToCoreMapper::run(const ChaToCachelinesMap& ChaToCachelines, const std::
   // start the counter on all CHAs
   auto* Pcm = pcm::PCM::getInstance();
 
-  PcmRingCounters::programmRingCounters(Pcm);
+  PcmRingCounters::programmADRingCounters(Pcm);
 
   // for each core access cache lines of all cha boxes and find the cache lines with the lowest read latency.
   for (const auto& Cpu : Cpus) {

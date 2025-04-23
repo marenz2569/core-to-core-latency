@@ -42,7 +42,7 @@ auto main(int Argc, const char** Argv) -> int {
     }
 
     auto CoreToChaBusyPath =
-        cclat::CoreTrafficTest::run(ChaToCachelines, CoreToCha, /*NumberOfCachelineReads=*/1000, Cfg.SocketIndex);
+        cclat::CoreTrafficTest::run(ChaToCachelines, CoreToCha, /*NumberOfCachelineReads=*/10000000, Cfg.SocketIndex);
 
     // auto CoreToCha = cclat::ChaToCoreMapper::run(ChaToCachelines);
 

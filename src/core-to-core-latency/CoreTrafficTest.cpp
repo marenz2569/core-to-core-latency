@@ -18,7 +18,7 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
   // start the counter on all CHAs
   auto* Pcm = pcm::PCM::getInstance();
 
-  PcmRingCounters::programmRingCounters(Pcm);
+  PcmRingCounters::programmADRingCounters(Pcm);
 
   for (const auto& [LocalCore, LocalCha] : CoreToCha) {
     const auto& Cachelines = ChaToCachelines.at(LocalCha);
