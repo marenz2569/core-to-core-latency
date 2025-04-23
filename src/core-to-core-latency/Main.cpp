@@ -1,6 +1,7 @@
 #include "core-to-core-latency/CachelineToChaMapper.hpp"
 #include "core-to-core-latency/ChaToCoreMapper.hpp"
 #include "core-to-core-latency/Config.hpp"
+#include "core-to-core-latency/CoreTrafficTest.hpp"
 #include "core-to-core-latency/TestList.hpp"
 #include "firestarter/CPUTopology.hpp"
 
@@ -39,6 +40,9 @@ auto main(int Argc, const char** Argv) -> int {
     for (const auto& [Core, Cha] : CoreToCha) {
       std::cout << "Core index: " << Core << " CHA index: " << Cha << '\n';
     }
+
+    auto CoreToChaBusyPath =
+        cclat::CoreTrafficTest::run(ChaToCachelines, CoreToCha, /*NumberOfCachelineReads=*/1000, Cfg.SocketIndex);
 
     // auto CoreToCha = cclat::ChaToCoreMapper::run(ChaToCachelines);
 

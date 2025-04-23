@@ -14,7 +14,6 @@ auto CachelineToChaMapper::run(void* Cachelines, std::size_t NumberOfCachelines,
 
   // start the counter on all CHAs
   auto* Pcm = pcm::PCM::getInstance();
-  auto Pmu = pcm::ServerUncorePMUs(/*socket_=*/SocketIndex, /*pcm=*/Pcm);
 
   {
     std::array<pcm::uint64, 4> CboConfigMap = {0, 0, 0, 0};
