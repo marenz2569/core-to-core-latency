@@ -19,6 +19,8 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
 
   firestarter::CPUTopology Topology;
 
+  auto ThreadBindFunction = [&Topology](auto&& PH1) { Topology.bindCallerToOsIndex(std::forward<decltype(PH1)>(PH1)); };
+
   // start the counter on all CHAs
   auto* Pcm = pcm::PCM::getInstance();
 
@@ -27,17 +29,11 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
   for (const auto& [LocalCore, LocalCha] : CoreToCha) {
     const auto& Cachelines = ChaToCachelines.at(LocalCha);
 
-    using ChaToRingMeasurements = std::map<uint64_t, std::array<pcm::uint64, 4>>;
-
     // Create the min of measurement values for all cache lines.
-    for (const auto& Cacheline : Cachelines) {
-      for (const auto& [RemoteCore, RemoteCha] : CoreToCha) {
-        auto ThreadBindFunction = [&Topology](auto&& PH1) {
-          Topology.bindCallerToOsIndex(std::forward<decltype(PH1)>(PH1));
-        };
+    for (const auto& [RemoteCore, RemoteCha] : CoreToCha) {
+      auto& ChaMeasurements = Measurements[TestPair{.LocalCpu = LocalCore, .RemoteCpu = RemoteCore}];
 
-        auto& ChaMeasurements = Measurements[TestPair{.LocalCpu = LocalCore, .RemoteCpu = RemoteCore}];
-
+      for (const auto& Cacheline : Cachelines) {
         auto Before = Pcm->getServerUncoreCounterState(SocketIndex);
 
         std::thread LocalThread(localThreadFunction, Cacheline, NumberOfCachelineReads, LocalCore,
@@ -50,9 +46,6 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
 
         auto After = Pcm->getServerUncoreCounterState(SocketIndex);
 
-        std::cout << "Local core: " << LocalCore << " Local cha: " << LocalCha << "\n";
-        std::cout << "Remote core: " << RemoteCore << " Remote cha: " << RemoteCha << "\n";
-
         // create the differnece of the measurement value.
         for (auto ChaIndex = 0; ChaIndex < Pcm->getMaxNumOfUncorePMUs(pcm::PCM::UncorePMUIDs::CBO_PMU_ID, SocketIndex);
              ChaIndex++) {
@@ -62,23 +55,20 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
                                            Before.Counters[pcm::PCM::UncorePMUIDs::CBO_PMU_ID][0][ChaIndex][I];
           }
           ChaMeasurements[ChaIndex] = std::min(ChaMeasurements[ChaIndex], RingCounterDifferences);
-          std::cout << "Cha: " << ChaIndex << " Left: " << RingCounterDifferences.at(PcmRingCounters::Direction::Left)
-                    << " Right: " << RingCounterDifferences.at(PcmRingCounters::Direction::Right)
-                    << " Up: " << RingCounterDifferences.at(PcmRingCounters::Direction::Up)
-                    << " Down: " << RingCounterDifferences.at(PcmRingCounters::Direction::Down) << "\n";
         }
+      }
+
+      for (const auto& [Cha, MinValues] : ChaMeasurements) {
+        std::cout << "LocalCore: " << LocalCore << " RemoteCore: " << RemoteCore << " Cha: " << Cha
+                  << " Left: " << MinValues.at(PcmRingCounters::Direction::Left)
+                  << " Right: " << MinValues.at(PcmRingCounters::Direction::Right)
+                  << " Up: " << MinValues.at(PcmRingCounters::Direction::Up)
+                  << " Down: " << MinValues.at(PcmRingCounters::Direction::Down) << "\n";
       }
     }
   }
 
   for (const auto& [Cores, ChaMeasurements] : Measurements) {
-    for (const auto& [Cha, MinValues] : ChaMeasurements) {
-      std::cout << "LocalCore: " << Cores.LocalCpu << " RemoteCore: " << Cores.RemoteCpu << " Cha: " << Cha
-                << " Left: " << MinValues.at(PcmRingCounters::Direction::Left)
-                << " Right: " << MinValues.at(PcmRingCounters::Direction::Right)
-                << " Up: " << MinValues.at(PcmRingCounters::Direction::Up)
-                << " Down: " << MinValues.at(PcmRingCounters::Direction::Down) << "\n";
-    }
   }
 
   return CoreToChaBusyPath;
