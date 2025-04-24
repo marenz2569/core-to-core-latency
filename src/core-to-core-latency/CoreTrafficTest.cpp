@@ -98,6 +98,12 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
 
         std::cout << "We have " << CounterValues.size() << " unique values.\n";
 
+        std::cout << "Values: ";
+        for (const auto& Value : CounterValues) {
+          std::cout << Value << " ";
+        }
+        std::cout << "\n";
+
         for (const auto& [Cha, Values] : Result) {
           std::cout << "LocalCore: " << LocalCore << " RemoteCore: " << RemoteCore << " Cha: " << Cha
                     << " Left: " << Values.at(PcmRingCounters::Direction::Left) / 100000
