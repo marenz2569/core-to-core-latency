@@ -11,11 +11,40 @@
 
 namespace cclat {
 
+auto CoreTrafficTest::measureCacheline(pcm::PCM& Pcm, void* Cacheline, const std::size_t NumberOfCachelineReads,
+                                       const TestPair& Cores, const uint64_t SocketIndex,
+                                       const std::function<void(unsigned)>& ThreadBindFunction) -> ChaMeasurementsMap {
+  ChaMeasurementsMap ChaMeasurements;
+
+  auto Before = Pcm.getServerUncoreCounterState(SocketIndex);
+
+  std::thread LocalThread(localThreadFunction, Cacheline, NumberOfCachelineReads, Cores.LocalCpu,
+                          std::cref(ThreadBindFunction));
+  std::thread RemoteThread(remoteThreadFunction, Cacheline, NumberOfCachelineReads, Cores.RemoteCpu,
+                           std::cref(ThreadBindFunction));
+
+  RemoteThread.join();
+  LocalThread.join();
+
+  auto After = Pcm.getServerUncoreCounterState(SocketIndex);
+
+  // create the differnece of the measurement value.
+  for (auto ChaIndex = 0; ChaIndex < Pcm.getMaxNumOfUncorePMUs(pcm::PCM::UncorePMUIDs::CBO_PMU_ID, SocketIndex);
+       ChaIndex++) {
+    for (auto I = 0; I < 4; I++) {
+      ChaMeasurements[ChaIndex][I] = After.Counters[pcm::PCM::UncorePMUIDs::CBO_PMU_ID][0][ChaIndex][I] -
+                                     Before.Counters[pcm::PCM::UncorePMUIDs::CBO_PMU_ID][0][ChaIndex][I];
+    }
+  }
+
+  return ChaMeasurements;
+}
+
 auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreToChaMap& CoreToCha,
                           const std::size_t NumberOfCachelineReads,
                           const uint64_t SocketIndex) -> CoreToChaBusyPathMap {
   CoreToChaBusyPathMap CoreToChaBusyPath;
-  using CoresToChaMeasurementsMap = std::unordered_map<TestPair, std::map<uint64_t, std::array<pcm::uint64, 4>>>;
+  using CoresToChaMeasurementsMap = std::unordered_map<TestPair, ChaMeasurementsMap>;
   CoresToChaMeasurementsMap Measurements;
 
   firestarter::CPUTopology Topology;
@@ -25,13 +54,14 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
   // start the counter on all CHAs
   auto* Pcm = pcm::PCM::getInstance();
 
-  PcmRingCounters::programmADRingCounters(Pcm);
+  PcmRingCounters::programmBLRingCounters(Pcm);
 
   for (const auto& [LocalCore, LocalCha] : CoreToCha) {
     const auto& Cachelines = ChaToCachelines.at(LocalCha);
 
     // Create the min of measurement values for all cache lines.
     for (const auto& [RemoteCore, RemoteCha] : CoreToCha) {
+      const auto Cores = TestPair{.LocalCpu = LocalCore, .RemoteCpu = RemoteCore};
       auto& ChaMeasurements = Measurements[TestPair{.LocalCpu = LocalCore, .RemoteCpu = RemoteCore}];
 
       // flush before use
@@ -46,36 +76,12 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
       }
 
       for (const auto& Cacheline : Cachelines) {
-        auto Before = Pcm->getServerUncoreCounterState(SocketIndex);
+        auto Result = measureCacheline(*Pcm, Cacheline, NumberOfCachelineReads, Cores, SocketIndex, ThreadBindFunction);
 
-        std::thread LocalThread(localThreadFunction, Cacheline, NumberOfCachelineReads, LocalCore,
-                                std::cref(ThreadBindFunction));
-        std::thread RemoteThread(remoteThreadFunction, Cacheline, NumberOfCachelineReads, RemoteCore,
-                                 std::cref(ThreadBindFunction));
-
-        RemoteThread.join();
-        LocalThread.join();
-
-        auto After = Pcm->getServerUncoreCounterState(SocketIndex);
-
-        // create the differnece of the measurement value.
-        for (auto ChaIndex = 0; ChaIndex < Pcm->getMaxNumOfUncorePMUs(pcm::PCM::UncorePMUIDs::CBO_PMU_ID, SocketIndex);
-             ChaIndex++) {
-          std::array<pcm::uint64, 4> RingCounterDifferences = {0, 0, 0, 0};
-          for (auto I = 0; I < 4; I++) {
-            RingCounterDifferences.at(I) = After.Counters[pcm::PCM::UncorePMUIDs::CBO_PMU_ID][0][ChaIndex][I] -
-                                           Before.Counters[pcm::PCM::UncorePMUIDs::CBO_PMU_ID][0][ChaIndex][I];
-          }
-
-          // initialize for std::min
-          if (!ChaMeasurements.contains(ChaIndex)) {
-            ChaMeasurements[ChaIndex] = {
-                std::numeric_limits<pcm::uint64>::max(), std::numeric_limits<pcm::uint64>::max(),
-                std::numeric_limits<pcm::uint64>::max(), std::numeric_limits<pcm::uint64>::max()};
-          }
-
-          ChaMeasurements[ChaIndex] = std::min(ChaMeasurements[ChaIndex], RingCounterDifferences);
-        }
+        // TODO: check for validity of result and continue if not value
+        // RESULT is valid if there are only two states of the counter values.
+        // If there are not only two states of the counter values, we must assume that the mapping of the cachelnes to
+        // the CHA is wrong.
       }
 
       std::cout << "Local core: " << LocalCore << " Local cha: " << LocalCha << "\n";
@@ -103,7 +109,7 @@ void CoreTrafficTest::localThreadFunction(void* VoidCacheline, const std::size_t
 
   for (auto I = 0; I < NumberOfCachelineReads; I++) {
     volatile auto* Cacheline = static_cast<uint8_t*>(VoidCacheline);
-    // read/write cache lines. lookups into l3 will occur here.
+    // read/write cache lines.
     *Cacheline = *Cacheline + 1;
   }
 }
@@ -116,7 +122,7 @@ void CoreTrafficTest::remoteThreadFunction(void* VoidCacheline, const std::size_
 
   for (auto I = 0; I < NumberOfCachelineReads; I++) {
     volatile auto* Cacheline = static_cast<uint8_t*>(VoidCacheline);
-    // read/write cache lines. lookups into l3 will occur here.
+    // read cache lines. we will see ingress from the local cha to this core.
     Sum += *Cacheline;
   }
 

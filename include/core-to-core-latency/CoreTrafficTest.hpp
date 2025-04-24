@@ -4,9 +4,11 @@
 #include "core-to-core-latency/ChaToCoreMapper.hpp"
 #include "core-to-core-latency/TestPair.hpp"
 
+#include <cpucounters.h>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <types.h>
 #include <unordered_map>
 
 namespace cclat {
@@ -23,6 +25,8 @@ class CoreTrafficTest {
 public:
   CoreTrafficTest() = default;
 
+  using ChaMeasurementsMap = std::map<uint64_t, std::array<pcm::uint64, 4>>;
+
   /// Determine the path on the ring which is taken between a local r/w and a remote reading core.
   /// \arg ChaToCachelines Cache lines associtated to cha boxes.
   /// \arg CoreToChaMap Chas associated to cores.
@@ -31,6 +35,10 @@ public:
   /// \returns the map of core to cha boxes
   [[nodiscard]] static auto run(const ChaToCachelinesMap& ChaToCachelines, const CoreToChaMap& CoreToCha,
                                 std::size_t NumberOfCachelineReads, uint64_t SocketIndex) -> CoreToChaBusyPathMap;
+
+  [[nodiscard]] static auto
+  measureCacheline(pcm::PCM& Pcm, void* Cacheline, std::size_t NumberOfCachelineReads, const TestPair& Cores,
+                   uint64_t SocketIndex, const std::function<void(unsigned)>& ThreadBindFunction) -> ChaMeasurementsMap;
 
   /// The local thread function that reads and writes to the cachelines.
   /// \arg Cachelines The cacheline to which the thread read and writes
