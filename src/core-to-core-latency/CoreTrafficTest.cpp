@@ -59,6 +59,11 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
 
     // Create the min of measurement values for all cache lines.
     for (const auto& [RemoteCore, RemoteCha] : CoreToCha) {
+      // skip self edge
+      if (LocalCore == RemoteCore) {
+        continue;
+      }
+
       const auto Cores = TestPair{.LocalCpu = LocalCore, .RemoteCpu = RemoteCore};
 
       // flush before use
