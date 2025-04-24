@@ -44,8 +44,6 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
                           const std::size_t NumberOfCachelineReads,
                           const uint64_t SocketIndex) -> CoreToChaBusyPathMap {
   CoreToChaBusyPathMap CoreToChaBusyPath;
-  using CoresToChaMeasurementsMap = std::unordered_map<TestPair, ChaMeasurementsMap>;
-  CoresToChaMeasurementsMap Measurements;
 
   firestarter::CPUTopology Topology;
 
@@ -62,7 +60,6 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
     // Create the min of measurement values for all cache lines.
     for (const auto& [RemoteCore, RemoteCha] : CoreToCha) {
       const auto Cores = TestPair{.LocalCpu = LocalCore, .RemoteCpu = RemoteCore};
-      auto& ChaMeasurements = Measurements[TestPair{.LocalCpu = LocalCore, .RemoteCpu = RemoteCore}];
 
       // flush before use
       for (const auto& VoidCacheline : Cachelines) {
@@ -82,22 +79,29 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
         // RESULT is valid if there are only two states of the counter values.
         // If there are not only two states of the counter values, we must assume that the mapping of the cachelnes to
         // the CHA is wrong.
-      }
 
-      std::cout << "Local core: " << LocalCore << " Local cha: " << LocalCha << "\n";
-      std::cout << "Remote core: " << RemoteCore << " Remote cha: " << RemoteCha << "\n";
+        std::cout << "Local core: " << LocalCore << " Local cha: " << LocalCha << "\n";
+        std::cout << "Remote core: " << RemoteCore << " Remote cha: " << RemoteCha << "\n";
 
-      for (const auto& [Cha, MinValues] : ChaMeasurements) {
-        std::cout << "LocalCore: " << LocalCore << " RemoteCore: " << RemoteCore << " Cha: " << Cha
-                  << " Left: " << MinValues.at(PcmRingCounters::Direction::Left)
-                  << " Right: " << MinValues.at(PcmRingCounters::Direction::Right)
-                  << " Up: " << MinValues.at(PcmRingCounters::Direction::Up)
-                  << " Down: " << MinValues.at(PcmRingCounters::Direction::Down) << "\n";
+        std::set<uint64_t> CounterValues;
+        for (const auto& [Cha, Values] : Result) {
+          CounterValues.emplace(Values.at(PcmRingCounters::Direction::Left) / 100000);
+          CounterValues.emplace(Values.at(PcmRingCounters::Direction::Right) / 100000);
+          CounterValues.emplace(Values.at(PcmRingCounters::Direction::Up) / 100000);
+          CounterValues.emplace(Values.at(PcmRingCounters::Direction::Down) / 100000);
+        }
+
+        std::cout << "We have " << CounterValues.size() << " unique values.\n";
+
+        for (const auto& [Cha, Values] : Result) {
+          std::cout << "LocalCore: " << LocalCore << " RemoteCore: " << RemoteCore << " Cha: " << Cha
+                    << " Left: " << Values.at(PcmRingCounters::Direction::Left) / 100000
+                    << " Right: " << Values.at(PcmRingCounters::Direction::Right) / 100000
+                    << " Up: " << Values.at(PcmRingCounters::Direction::Up) / 100000
+                    << " Down: " << Values.at(PcmRingCounters::Direction::Down) / 100000 << "\n";
+        }
       }
     }
-  }
-
-  for (const auto& [Cores, ChaMeasurements] : Measurements) {
   }
 
   return CoreToChaBusyPath;
