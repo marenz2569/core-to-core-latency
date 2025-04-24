@@ -86,33 +86,14 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
         // the CHA is wrong.
 
         std::set<uint64_t> CounterValues;
-        // map the number of directions that have traffic for each cha.
-        std::map<uint64_t, uint64_t> ChaToTrafficCounter;
         for (const auto& [Cha, Values] : Result) {
           CounterValues.emplace(Values.at(PcmRingCounters::Direction::Left) / 100000);
           CounterValues.emplace(Values.at(PcmRingCounters::Direction::Right) / 100000);
           CounterValues.emplace(Values.at(PcmRingCounters::Direction::Up) / 100000);
           CounterValues.emplace(Values.at(PcmRingCounters::Direction::Down) / 100000);
-
-          for (auto I = 0; I < 4; I++) {
-            if (Values.at(I) / 100000 > 0) {
-              ChaToTrafficCounter[Cha]++;
-            }
-          }
         }
 
         if (CounterValues.size() > 3) {
-          continue;
-        }
-        auto IngressCheckFailed = false;
-        for (const auto& [Cha, TrafficCount] : ChaToTrafficCounter) {
-          // We should only see ingress traffic from one direction
-          if (TrafficCount > 1) {
-            IngressCheckFailed = true;
-          }
-        }
-
-        if (IngressCheckFailed) {
           continue;
         }
 
