@@ -85,9 +85,6 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
         // If there are not only two states of the counter values, we must assume that the mapping of the cachelnes to
         // the CHA is wrong.
 
-        std::cout << "Local core: " << LocalCore << " Local cha: " << LocalCha << "\n";
-        std::cout << "Remote core: " << RemoteCore << " Remote cha: " << RemoteCha << "\n";
-
         std::set<uint64_t> CounterValues;
         for (const auto& [Cha, Values] : Result) {
           CounterValues.emplace(Values.at(PcmRingCounters::Direction::Left) / 100000);
@@ -96,6 +93,12 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
           CounterValues.emplace(Values.at(PcmRingCounters::Direction::Down) / 100000);
         }
 
+        if (CounterValues.size() > 3) {
+          continue;
+        }
+
+        std::cout << "Local core: " << LocalCore << " Local cha: " << LocalCha << "\n";
+        std::cout << "Remote core: " << RemoteCore << " Remote cha: " << RemoteCha << "\n";
         std::cout << "We have " << CounterValues.size() << " unique values.\n";
 
         std::cout << "Values: ";
@@ -111,6 +114,8 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
                     << " Up: " << Values.at(PcmRingCounters::Direction::Up) / 100000
                     << " Down: " << Values.at(PcmRingCounters::Direction::Down) / 100000 << "\n";
         }
+
+        break;
       }
     }
   }
