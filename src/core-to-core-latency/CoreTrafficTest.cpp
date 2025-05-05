@@ -5,7 +5,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
-#include <limits>
 #include <thread>
 #include <unordered_map>
 
@@ -32,6 +31,7 @@ auto CoreTrafficTest::measureCacheline(pcm::PCM& Pcm, void* Cacheline, const std
   for (auto ChaIndex = 0; ChaIndex < Pcm.getMaxNumOfUncorePMUs(pcm::PCM::UncorePMUIDs::CBO_PMU_ID, SocketIndex);
        ChaIndex++) {
     for (auto I = 0; I < 4; I++) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
       ChaMeasurements[ChaIndex][I] = After.Counters[pcm::PCM::UncorePMUIDs::CBO_PMU_ID][0][ChaIndex][I] -
                                      Before.Counters[pcm::PCM::UncorePMUIDs::CBO_PMU_ID][0][ChaIndex][I];
     }
@@ -79,13 +79,13 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
 
       auto ValidResult = false;
 
+      // Run the measurement for one cacheline and repeat with the next if the result is not valid.
       for (const auto& Cacheline : Cachelines) {
         auto Result = measureCacheline(*Pcm, Cacheline, NumberOfCachelineReads, Cores, SocketIndex, ThreadBindFunction);
 
-        // TODO: check for validity of result and continue if not value
-        // RESULT is valid if there are only two states of the counter values.
-        // If there are not only two states of the counter values, we must assume that the mapping of the cachelnes to
-        // the CHA is wrong.
+        // The result of the measurement is valid if there are only a couple of distinct counter value clusters.
+        // If there are too many counter value clusters, we must assume that the mapping of the
+        // cachelines to the CHA is wrong.
 
         std::set<uint64_t> CounterValues;
         for (const auto& [Cha, Values] : Result) {
@@ -95,13 +95,14 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
           CounterValues.emplace(Values.at(PcmRingCounters::Direction::Down) / 100000);
         }
 
+        // too many clusters, retry the measurement
         if (CounterValues.size() > 3) {
           continue;
         }
 
         std::cout << "Local core: " << LocalCore << " Local cha: " << LocalCha << "\n";
         std::cout << "Remote core: " << RemoteCore << " Remote cha: " << RemoteCha << "\n";
-        std::cout << "We have " << CounterValues.size() << " unique values.\n";
+        std::cout << "We have " << CounterValues.size() << " unique clusters.\n";
 
         std::cout << "Values: ";
         for (const auto& Value : CounterValues) {
@@ -117,12 +118,14 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
                     << " Down: " << Values.at(PcmRingCounters::Direction::Down) / 100000 << "\n";
         }
 
-	ValidResult = true;
+        ValidResult = true;
         break;
       }
 
       if (!ValidResult) {
-	      throw std::runtime_error("Could not find setting for Local core: " + std::to_string(LocalCore) + " Local cha: " + std::to_string(LocalCha) + " Remote core: " + std::to_string(RemoteCore) + " Remote cha: " + std::to_string(RemoteCha));
+        throw std::runtime_error("Could not find setting for Local core: " + std::to_string(LocalCore) +
+                                 " Local cha: " + std::to_string(LocalCha) + " Remote core: " +
+                                 std::to_string(RemoteCore) + " Remote cha: " + std::to_string(RemoteCha));
       }
     }
   }
