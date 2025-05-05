@@ -77,6 +77,8 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
                          : "memory");
       }
 
+      auto ValidResult = false;
+
       for (const auto& Cacheline : Cachelines) {
         auto Result = measureCacheline(*Pcm, Cacheline, NumberOfCachelineReads, Cores, SocketIndex, ThreadBindFunction);
 
@@ -115,7 +117,12 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
                     << " Down: " << Values.at(PcmRingCounters::Direction::Down) / 100000 << "\n";
         }
 
+	ValidResult = true;
         break;
+      }
+
+      if (!ValidResult) {
+	      throw std::runtime_error("Could not find setting for Local core: " + std::to_string(LocalCore) + " Local cha: " + std::to_string(LocalCha) + " Remote core: " + std::to_string(RemoteCore) + " Remote cha: " + std::to_string(RemoteCha));
       }
     }
   }
