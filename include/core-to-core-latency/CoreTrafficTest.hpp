@@ -31,10 +31,16 @@ public:
   /// \arg ChaToCachelines Cache lines associtated to cha boxes.
   /// \arg CoreToChaMap Chas associated to cores.
   /// \arg NumberOfCachelineReads The number of times one cachline is read/written to during the benchmark.
+  /// \arg ClusteringThreshold The percentage between 0 and 1 of detection events relative to the
+  /// NumberOfCachelineReads that is taken as the threshold for counter values to be clusted into seperate
+  /// buckets for checking measurement validity.
+  /// \arg DetectionThreshold The percentage between 0 and 1 of detection events relative to the
+  /// NumberOfCachelineReads that need to be counted for the path to be marked as busy.
   /// \arg SocketIndex The socket that is used for this benchmark
   /// \returns the map of core to cha boxes
   [[nodiscard]] static auto run(const ChaToCachelinesMap& ChaToCachelines, const CoreToChaMap& CoreToCha,
-                                std::size_t NumberOfCachelineReads, uint64_t SocketIndex) -> CoreToChaBusyPathMap;
+                                std::size_t NumberOfCachelineReads, float ClusteringThreshold, float DetectionThreshold,
+                                uint64_t SocketIndex) -> CoreToChaBusyPathMap;
 
   [[nodiscard]] static auto
   measureCacheline(pcm::PCM& Pcm, void* Cacheline, std::size_t NumberOfCachelineReads, const TestPair& Cores,

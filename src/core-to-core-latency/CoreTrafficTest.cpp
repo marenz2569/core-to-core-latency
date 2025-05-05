@@ -41,11 +41,16 @@ auto CoreTrafficTest::measureCacheline(pcm::PCM& Pcm, void* Cacheline, const std
 }
 
 auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreToChaMap& CoreToCha,
-                          const std::size_t NumberOfCachelineReads,
-                          const uint64_t SocketIndex) -> CoreToChaBusyPathMap {
+                          const std::size_t NumberOfCachelineReads, const float ClusteringThreshold,
+                          const float DetectionThreshold, const uint64_t SocketIndex) -> CoreToChaBusyPathMap {
   CoreToChaBusyPathMap CoreToChaBusyPath;
 
   firestarter::CPUTopology Topology;
+
+  const auto AbsoluteClusteringThreshold =
+      static_cast<std::size_t>(static_cast<float>(NumberOfCachelineReads) * ClusteringThreshold);
+  const auto AbsoluteDetectionThreshold =
+      static_cast<std::size_t>(static_cast<float>(NumberOfCachelineReads) * DetectionThreshold);
 
   auto ThreadBindFunction = [&Topology](auto&& PH1) { Topology.bindCallerToOsIndex(std::forward<decltype(PH1)>(PH1)); };
 
@@ -89,10 +94,10 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
 
         std::set<uint64_t> CounterValues;
         for (const auto& [Cha, Values] : Result) {
-          CounterValues.emplace(Values.at(PcmRingCounters::Direction::Left) / 100000);
-          CounterValues.emplace(Values.at(PcmRingCounters::Direction::Right) / 100000);
-          CounterValues.emplace(Values.at(PcmRingCounters::Direction::Up) / 100000);
-          CounterValues.emplace(Values.at(PcmRingCounters::Direction::Down) / 100000);
+          CounterValues.emplace(Values.at(PcmRingCounters::Direction::Left) / AbsoluteClusteringThreshold);
+          CounterValues.emplace(Values.at(PcmRingCounters::Direction::Right) / AbsoluteClusteringThreshold);
+          CounterValues.emplace(Values.at(PcmRingCounters::Direction::Up) / AbsoluteClusteringThreshold);
+          CounterValues.emplace(Values.at(PcmRingCounters::Direction::Down) / AbsoluteClusteringThreshold);
         }
 
         // too many clusters, retry the measurement
@@ -112,10 +117,10 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
 
         for (const auto& [Cha, Values] : Result) {
           std::cout << "LocalCore: " << LocalCore << " RemoteCore: " << RemoteCore << " Cha: " << Cha
-                    << " Left: " << Values.at(PcmRingCounters::Direction::Left) / 100000
-                    << " Right: " << Values.at(PcmRingCounters::Direction::Right) / 100000
-                    << " Up: " << Values.at(PcmRingCounters::Direction::Up) / 100000
-                    << " Down: " << Values.at(PcmRingCounters::Direction::Down) / 100000 << "\n";
+                    << " Left: " << Values.at(PcmRingCounters::Direction::Left)
+                    << " Right: " << Values.at(PcmRingCounters::Direction::Right)
+                    << " Up: " << Values.at(PcmRingCounters::Direction::Up)
+                    << " Down: " << Values.at(PcmRingCounters::Direction::Down) << "\n";
         }
 
         ValidResult = true;

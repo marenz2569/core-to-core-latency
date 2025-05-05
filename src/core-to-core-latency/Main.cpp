@@ -41,8 +41,9 @@ auto main(int Argc, const char** Argv) -> int {
       std::cout << "Core index: " << Core << " CHA index: " << Cha << '\n';
     }
 
-    auto CoreToChaBusyPath =
-        cclat::CoreTrafficTest::run(ChaToCachelines, CoreToCha, /*NumberOfCachelineReads=*/10000000, Cfg.SocketIndex);
+    auto CoreToChaBusyPath = cclat::CoreTrafficTest::run(
+        ChaToCachelines, CoreToCha, /*NumberOfCachelineReads=*/10000000,
+        /*ClusteringThreshold=*/1 / 100.0, /*DetectionThreshold=*/1 / 20.0, Cfg.SocketIndex);
 
     // auto CoreToCha = cclat::ChaToCoreMapper::run(ChaToCachelines);
 
