@@ -82,7 +82,7 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
                          : "memory");
       }
 
-      auto ValidResult = false;
+      auto ResultValid = false;
 
       // Run the measurement for one cacheline and repeat with the next if the result is not valid.
       for (const auto& Cacheline : Cachelines) {
@@ -105,6 +105,8 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
           continue;
         }
 
+        ResultValid = true;
+
         std::cout << "Local core: " << LocalCore << " Local cha: " << LocalCha << "\n";
         std::cout << "Remote core: " << RemoteCore << " Remote cha: " << RemoteCha << "\n";
         std::cout << "We have " << CounterValues.size() << " unique clusters.\n";
@@ -115,19 +117,12 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
         }
         std::cout << "\n";
 
-        for (const auto& [Cha, Values] : Result) {
-          std::cout << "LocalCore: " << LocalCore << " RemoteCore: " << RemoteCore << " Cha: " << Cha
-                    << " Left: " << Values.at(PcmRingCounters::Direction::Left)
-                    << " Right: " << Values.at(PcmRingCounters::Direction::Right)
-                    << " Up: " << Values.at(PcmRingCounters::Direction::Up)
-                    << " Down: " << Values.at(PcmRingCounters::Direction::Down) << "\n";
-        }
+        dump(Result);
 
-        ValidResult = true;
         break;
       }
 
-      if (!ValidResult) {
+      if (!ResultValid) {
         throw std::runtime_error("Could not find setting for Local core: " + std::to_string(LocalCore) +
                                  " Local cha: " + std::to_string(LocalCha) + " Remote core: " +
                                  std::to_string(RemoteCore) + " Remote cha: " + std::to_string(RemoteCha));
