@@ -119,14 +119,14 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const ChaTo
           for (auto I = 0; I < 4; I++) {
             auto Cluster = Values.at(I) / AbsoluteClusteringThreshold;
             // check if the line is activated
-            if (Cluster == *CounterValues.cend()) {
+            if (Cluster != 0) {
               CurrentNumberOfChannelIngress++;
             }
           }
         }
 
         if (NumberOfChannelIngress > CurrentNumberOfChannelIngress) {
-          CurrentNumberOfChannelIngress = NumberOfChannelIngress;
+          NumberOfChannelIngress = CurrentNumberOfChannelIngress;
           LastChaMeasurementsMap = Result;
           LastCachelineUpdate = CachelineNumber;
         }
