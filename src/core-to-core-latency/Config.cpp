@@ -19,7 +19,7 @@ Config::Config(int Argc, const char** Argv)
   Parser.add_options()
     ("socket-index", "The index of the socket that should be used by the experiment", cxxopts::value<unsigned>()->default_value("0"))
     ("num-cachelines", "The number of cache lines to be used by the experiment", cxxopts::value<unsigned>()->default_value("16384"))
-    ("outfile", "The path where the results should be saved to.", cxxopts::value<std::string>()->default_value("outfile.csv"))
+    ("outfile", "The path where the results should be saved to.", cxxopts::value<std::string>()->default_value("outfile.json"))
     ("b,bind", "Select certain CPUs. CPULIST format: \"x,y,z\",\n\"x-y\", \"x-y/step\", and any combination of the\nabove.",
       cxxopts::value<std::string>()->default_value(""), "CPULIST")
   ;

@@ -51,7 +51,7 @@ auto ChaToCoreMapper::run(const ChaToCachelinesMap& ChaToCachelines, const std::
                                   RingCounterDifferences.at(PcmRingCounters::Direction::Right) +
                                   RingCounterDifferences.at(PcmRingCounters::Direction::Up) +
                                   RingCounterDifferences.at(PcmRingCounters::Direction::Down);
-      std::cout << "CHA: " << Cha << "Core: " << Cpu << " difference = " << ChaToCounterValueSum[Cha] << "\n";
+      std::cout << "CHA: " << Cha << " Core: " << Cpu << " difference = " << ChaToCounterValueSum[Cha] << "\n";
     }
 
     // Select the cha based on the minmal counter value.
