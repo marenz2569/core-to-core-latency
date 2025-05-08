@@ -108,8 +108,8 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const ChaTo
           CounterValues.emplace(Values.at(PcmRingCounters::Direction::Down) / AbsoluteClusteringThreshold);
         }
 
-        // too many clusters, retry the measurement
-        if (CounterValues.size() > 2) {
+        // we expect two cluster. one for zero values and one for the value that is above the detection threshold
+        if (CounterValues.size() == 2) {
           continue;
         }
 
@@ -117,12 +117,16 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const ChaTo
         auto CurrentNumberOfChannelIngress = 0;
         for (const auto& [Cha, Values] : Result) {
           for (auto I = 0; I < 4; I++) {
-            auto Cluster = Values.at(I) / AbsoluteClusteringThreshold;
             // check if the line is activated
-            if (Cluster != 0) {
+            if (Values.at(I) > AbsoluteDetectionThreshold) {
               CurrentNumberOfChannelIngress++;
             }
           }
+        }
+
+        // We expect that we have at least one activated ingress channel
+        if (CurrentNumberOfChannelIngress == 0) {
+          continue;
         }
 
         if (NumberOfChannelIngress > CurrentNumberOfChannelIngress) {
