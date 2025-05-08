@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <limits>
 #include <thread>
 #include <unordered_map>
 
@@ -84,9 +85,15 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const ChaTo
       }
 
       auto ResultValid = false;
+      auto NumberOfChannelIngress = std::numeric_limits<int>::max();
+      auto LastCachelineUpdate = 0;
+      ChaMeasurementsMap LastChaMeasurementsMap;
+      auto CachelineNumber = 0;
 
       // Run the measurement for one cacheline and repeat with the next if the result is not valid.
       for (const auto& Cacheline : Cachelines) {
+        CachelineNumber++;
+
         auto Result = measureCacheline(*Pcm, Cacheline, NumberOfCachelineReads, Cores, SocketIndex, ThreadBindFunction);
 
         // The result of the measurement is valid if there are only a couple of distinct counter value clusters.
@@ -106,22 +113,38 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const ChaTo
           continue;
         }
 
+        // Find the cacheline where we count the least number of ring channel activations.
+        auto CurrentNumberOfChannelIngress = 0;
+        for (const auto& [Cha, Values] : Result) {
+          for (auto I = 0; I < 4; I++) {
+            auto Cluster = Values.at(I) / AbsoluteClusteringThreshold;
+            // check if the line is activated
+            if (Cluster == *CounterValues.cend()) {
+              CurrentNumberOfChannelIngress++;
+            }
+          }
+        }
+
+        if (NumberOfChannelIngress > CurrentNumberOfChannelIngress) {
+          CurrentNumberOfChannelIngress = NumberOfChannelIngress;
+          LastChaMeasurementsMap = Result;
+          LastCachelineUpdate = CachelineNumber;
+        }
+
+        // Read 10 more cache lines until deciding we hit the minimum.
+        if (CachelineNumber - LastCachelineUpdate < 10) {
+          continue;
+        }
+
         ResultValid = true;
 
         std::cout << "Local core: " << LocalCore << " Local cha: " << LocalCha << "\n";
         std::cout << "Remote core: " << RemoteCore << " Remote cha: " << RemoteCha << "\n";
-        std::cout << "We have " << CounterValues.size() << " unique clusters.\n";
 
-        std::cout << "Values: ";
-        for (const auto& Value : CounterValues) {
-          std::cout << Value << " ";
-        }
-        std::cout << "\n";
-
-        dump(Result);
+        dump(LastChaMeasurementsMap);
 
         // insert the result for the local/remote cha combination
-        auto Ingress = fromChaMeasurementsMap(Result, AbsoluteDetectionThreshold);
+        auto Ingress = fromChaMeasurementsMap(LastChaMeasurementsMap, AbsoluteDetectionThreshold);
         ChasWithIngressPathsVector.emplace_back(
             MeasuredChasAndIngressPaths{.LocalCha = LocalCha, .RemoteCha = RemoteCha, .IngressPaths = Ingress});
 
