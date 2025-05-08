@@ -21,15 +21,6 @@ struct Config {
   /// The number of cache lines to be used by the experiment
   unsigned NumberOfCachelines;
 
-  /// The number of unrolls of the experiment loop
-  unsigned UnrollCount;
-
-  /// The number of iteration of the experiment loop
-  unsigned InnerIterations;
-
-  /// The number of iterations used to average the result
-  unsigned OuterIterations;
-
   /// The path where the output should be saved.
   std::string OutfilePath;
 

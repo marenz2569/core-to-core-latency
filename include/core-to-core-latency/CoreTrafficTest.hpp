@@ -1,8 +1,9 @@
 #pragma once
 
 #include "core-to-core-latency/CachelineToChaMapper.hpp"
+#include "core-to-core-latency/ChaMeasurementsMap.hpp"
 #include "core-to-core-latency/ChaToCoreMapper.hpp"
-#include "core-to-core-latency/PcmRingCounters.hpp"
+#include "core-to-core-latency/MeasuredChasAndIngressPathsVector.hpp"
 #include "core-to-core-latency/TestPair.hpp"
 
 #include <cpucounters.h>
@@ -10,15 +11,8 @@
 #include <cstdint>
 #include <functional>
 #include <types.h>
-#include <unordered_map>
 
 namespace cclat {
-
-/// The map of a core id to cha box id.
-using ChaToBusyPathMap = std::map<uint64_t, uint64_t>;
-
-// TODO use std::map with test pair
-using CoreToChaBusyPathMap = std::unordered_map<TestPair, std::vector<ChaToBusyPathMap>>;
 
 /// This class creates traffic between cores and records the traffic path on the ring interconnects between the CHA
 /// boxes.
@@ -26,23 +20,9 @@ class CoreTrafficTest {
 public:
   CoreTrafficTest() = default;
 
-  /// Map from the CHA index to the array of PCM measurement values.
-  using ChaMeasurementsMap = std::map<uint64_t, std::array<pcm::uint64, 4>>;
-
-  /// Print a ChaMeasurementsMap
-  /// \arg Cmm The ChaMeasurementsMap that should be printed
-  static void dump(const ChaMeasurementsMap& Cmm) {
-    for (const auto& [Cha, Values] : Cmm) {
-      std::cout << "Cha: " << Cha << " Left: " << Values.at(PcmRingCounters::Direction::Left)
-                << " Right: " << Values.at(PcmRingCounters::Direction::Right)
-                << " Up: " << Values.at(PcmRingCounters::Direction::Up)
-                << " Down: " << Values.at(PcmRingCounters::Direction::Down) << "\n";
-    }
-  }
-
   /// Determine the path on the ring which is taken between a local r/w and a remote reading core.
   /// \arg ChaToCachelines Cache lines associtated to cha boxes.
-  /// \arg CoreToChaMap Chas associated to cores.
+  /// \arg ChaToCoreMap Chas associated to cores.
   /// \arg NumberOfCachelineReads The number of times one cachline is read/written to during the benchmark.
   /// \arg ClusteringThreshold The percentage between 0 and 1 of detection events relative to the
   /// NumberOfCachelineReads that is taken as the threshold for counter values to be clusted into seperate
@@ -50,10 +30,10 @@ public:
   /// \arg DetectionThreshold The percentage between 0 and 1 of detection events relative to the
   /// NumberOfCachelineReads that need to be counted for the path to be marked as busy.
   /// \arg SocketIndex The socket that is used for this benchmark
-  /// \returns the map of core to cha boxes
-  [[nodiscard]] static auto run(const ChaToCachelinesMap& ChaToCachelines, const CoreToChaMap& CoreToCha,
+  /// \returns the vector of measurement measured cha boxes and the ingress of all chas
+  [[nodiscard]] static auto run(const ChaToCachelinesMap& ChaToCachelines, const ChaToCoreMap& ChaToCore,
                                 std::size_t NumberOfCachelineReads, float ClusteringThreshold, float DetectionThreshold,
-                                uint64_t SocketIndex) -> CoreToChaBusyPathMap;
+                                uint64_t SocketIndex) -> MeasuredChasAndIngressPathsVector;
 
   [[nodiscard]] static auto
   measureCacheline(pcm::PCM& Pcm, void* Cacheline, std::size_t NumberOfCachelineReads, const TestPair& Cores,

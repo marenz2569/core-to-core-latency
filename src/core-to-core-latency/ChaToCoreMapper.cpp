@@ -11,8 +11,8 @@
 namespace cclat {
 
 auto ChaToCoreMapper::run(const ChaToCachelinesMap& ChaToCachelines, const std::size_t NumberOfCachelineReads,
-                          const std::set<uint64_t>& Cpus, const uint64_t SocketIndex) -> CoreToChaMap {
-  CoreToChaMap CoreToCha;
+                          const std::set<uint64_t>& Cpus, const uint64_t SocketIndex) -> ChaToCoreMap {
+  ChaToCoreMap ChaToCore;
   firestarter::CPUTopology Topology;
 
   // start the counter on all CHAs
@@ -51,17 +51,17 @@ auto ChaToCoreMapper::run(const ChaToCachelinesMap& ChaToCachelines, const std::
                                   RingCounterDifferences.at(PcmRingCounters::Direction::Right) +
                                   RingCounterDifferences.at(PcmRingCounters::Direction::Up) +
                                   RingCounterDifferences.at(PcmRingCounters::Direction::Down);
-      std::cout << "Core: " << Cpu << " CHA: " << Cha << " difference = " << ChaToCounterValueSum[Cha] << "\n";
+      std::cout << "CHA: " << Cha << "Core: " << Cpu << " difference = " << ChaToCounterValueSum[Cha] << "\n";
     }
 
     // Select the cha based on the minmal counter value.
     auto MinValueIterator = std::ranges::min_element(
         ChaToCounterValueSum, [](auto& Lhs, auto& Rhs) -> bool { return Lhs.second < Rhs.second; });
 
-    CoreToCha[Cpu] = MinValueIterator->first;
+    ChaToCore[MinValueIterator->first] = Cpu;
   }
 
-  return CoreToCha;
+  return ChaToCore;
 }
 
 } // namespace cclat

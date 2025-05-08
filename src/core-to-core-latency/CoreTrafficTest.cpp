@@ -40,10 +40,11 @@ auto CoreTrafficTest::measureCacheline(pcm::PCM& Pcm, void* Cacheline, const std
   return ChaMeasurements;
 }
 
-auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreToChaMap& CoreToCha,
+auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const ChaToCoreMap& ChaToCore,
                           const std::size_t NumberOfCachelineReads, const float ClusteringThreshold,
-                          const float DetectionThreshold, const uint64_t SocketIndex) -> CoreToChaBusyPathMap {
-  CoreToChaBusyPathMap CoreToChaBusyPath;
+                          const float DetectionThreshold,
+                          const uint64_t SocketIndex) -> MeasuredChasAndIngressPathsVector {
+  MeasuredChasAndIngressPathsVector ChasWithIngressPathsVector;
 
   firestarter::CPUTopology Topology;
 
@@ -59,11 +60,11 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
 
   PcmRingCounters::programmBLRingCounters(Pcm);
 
-  for (const auto& [LocalCore, LocalCha] : CoreToCha) {
+  for (const auto& [LocalCha, LocalCore] : ChaToCore) {
     const auto& Cachelines = ChaToCachelines.at(LocalCha);
 
     // Create the min of measurement values for all cache lines.
-    for (const auto& [RemoteCore, RemoteCha] : CoreToCha) {
+    for (const auto& [RemoteCha, RemoteCore] : ChaToCore) {
       // skip self edge
       if (LocalCore == RemoteCore) {
         continue;
@@ -119,6 +120,11 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
 
         dump(Result);
 
+        // insert the result for the local/remote cha combination
+        auto Ingress = fromChaMeasurementsMap(Result, AbsoluteDetectionThreshold);
+        ChasWithIngressPathsVector.emplace_back(
+            MeasuredChasAndIngressPaths{.LocalCha = LocalCha, .RemoteCha = RemoteCha, .IngressPaths = Ingress});
+
         break;
       }
 
@@ -130,7 +136,7 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const CoreT
     }
   }
 
-  return CoreToChaBusyPath;
+  return ChasWithIngressPathsVector;
 }
 
 void CoreTrafficTest::localThreadFunction(void* VoidCacheline, const std::size_t NumberOfCachelineReads, uint64_t CpuId,

@@ -7,7 +7,7 @@ namespace cclat {
 
 struct PcmRingCounters {
   // NOLINTNEXTLINE(performance-enum-size)
-  enum Direction { Left = 0, Right = 1, Up = 2, Down = 3 };
+  enum Direction { Up = 0, Down = 1, Left = 2, Right = 3 };
 
   /// Program the ring AD counters on all CHAs.
   static void programmADRingCounters(pcm::PCM* Pcm) {

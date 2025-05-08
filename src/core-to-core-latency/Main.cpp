@@ -1,4 +1,5 @@
 #include "core-to-core-latency/CachelineToChaMapper.hpp"
+#include "core-to-core-latency/ChaCoreMapperResults.hpp"
 #include "core-to-core-latency/ChaToCoreMapper.hpp"
 #include "core-to-core-latency/Config.hpp"
 #include "core-to-core-latency/CoreTrafficTest.hpp"
@@ -34,24 +35,23 @@ auto main(int Argc, const char** Argv) -> int {
       std::cout << "Cha index: " << Cha << " contains " << Values.size() << " values" << '\n';
     }
 
-    auto CoreToCha =
+    auto ChaToCore =
         cclat::ChaToCoreMapper::run(ChaToCachelines, /*NumberOfCachelineReads=*/1000, Cfg.CpuBinding, Cfg.SocketIndex);
 
-    for (const auto& [Core, Cha] : CoreToCha) {
-      std::cout << "Core index: " << Core << " CHA index: " << Cha << '\n';
+    for (const auto& [Cha, Core] : ChaToCore) {
+      std::cout << "CHA index: " << Cha << " Core index: " << Core << '\n';
     }
 
     auto CoreToChaBusyPath = cclat::CoreTrafficTest::run(
-        ChaToCachelines, CoreToCha, /*NumberOfCachelineReads=*/10000000,
+        ChaToCachelines, ChaToCore, /*NumberOfCachelineReads=*/10000000,
         /*ClusteringThreshold=*/1 / 100.0, /*DetectionThreshold=*/1 / 20.0, Cfg.SocketIndex);
 
-    // auto CoreToCha = cclat::ChaToCoreMapper::run(ChaToCachelines);
+    auto Results = cclat::ChaCoreMapperResults{.ChaToCore = ChaToCore, .ChasWithIngressPathsVector = CoreToChaBusyPath};
 
-    // cclat::CoreToCoreLatencyTest CCLat;
-
-    // auto Results = CCLat.run(Cfg);
-
-    // Results.saveCsv(Cfg.OutfilePath);
+    std::ofstream OutfileStream(Cfg.OutfilePath);
+    nlohmann::json JsonOutput;
+    nlohmann::adl_serializer<cclat::ChaCoreMapperResults>::to_json(JsonOutput, Results);
+    OutfileStream << JsonOutput << '\n';
   } catch (std::exception const& E) {
     std::cerr << E.what();
     return EXIT_FAILURE;

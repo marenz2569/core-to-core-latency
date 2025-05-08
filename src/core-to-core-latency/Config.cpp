@@ -19,9 +19,6 @@ Config::Config(int Argc, const char** Argv)
   Parser.add_options()
     ("socket-index", "The index of the socket that should be used by the experiment", cxxopts::value<unsigned>()->default_value("0"))
     ("num-cachelines", "The number of cache lines to be used by the experiment", cxxopts::value<unsigned>()->default_value("16384"))
-    ("unroll", "The number of unrolls of the experiment loop", cxxopts::value<unsigned>()->default_value("16"))
-    ("inner-iterations", "The number of iteration of the experiment loop", cxxopts::value<unsigned>()->default_value("2048"))
-    ("outer-iterations", "The number of iterations used to average the result", cxxopts::value<unsigned>()->default_value("16"))
     ("outfile", "The path where the results should be saved to.", cxxopts::value<std::string>()->default_value("outfile.csv"))
     ("b,bind", "Select certain CPUs. CPULIST format: \"x,y,z\",\n\"x-y\", \"x-y/step\", and any combination of the\nabove.",
       cxxopts::value<std::string>()->default_value(""), "CPULIST")
@@ -33,9 +30,6 @@ Config::Config(int Argc, const char** Argv)
 
     SocketIndex = Options["socket-index"].as<unsigned>();
     NumberOfCachelines = Options["num-cachelines"].as<unsigned>();
-    UnrollCount = Options["unroll"].as<unsigned>();
-    InnerIterations = Options["inner-iterations"].as<unsigned>();
-    OuterIterations = Options["outer-iterations"].as<unsigned>();
 
     OutfilePath = Options["outfile"].as<std::string>();
 
