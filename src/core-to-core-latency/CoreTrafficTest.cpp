@@ -102,7 +102,7 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const ChaTo
         }
 
         // too many clusters, retry the measurement
-        if (CounterValues.size() > 3) {
+        if (CounterValues.size() > 2) {
           continue;
         }
 
@@ -160,7 +160,7 @@ void CoreTrafficTest::remoteThreadFunction(void* VoidCacheline, const std::size_
   uint8_t Sum{};
   for (auto I = 0; I < NumberOfCachelineReads; I++) {
     // read cache lines. we will see ingress from the local cha to this core.
-    Sum += *Cacheline;
+    Sum = *Cacheline;
   }
 
   (void)Sum;
