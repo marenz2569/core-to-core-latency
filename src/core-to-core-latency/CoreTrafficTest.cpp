@@ -131,8 +131,8 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const ChaTo
           LastCachelineUpdate = CachelineNumber;
         }
 
-        // Read 10 more cache lines until deciding we hit the minimum.
-        if (CachelineNumber - LastCachelineUpdate < 10) {
+        // Read 100 more cache lines until deciding we hit the minimum.
+        if (CachelineNumber - LastCachelineUpdate < 100) {
           continue;
         }
 
