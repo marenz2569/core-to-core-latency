@@ -124,12 +124,8 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const ChaTo
           }
         }
 
-        // We expect that we have at least one activated ingress channel
-        if (CurrentNumberOfChannelIngress == 0) {
-          continue;
-        }
-
-        if (NumberOfChannelIngress > CurrentNumberOfChannelIngress) {
+        // Update if we have at least one ingress channel
+        if (CurrentNumberOfChannelIngress > 0 && NumberOfChannelIngress > CurrentNumberOfChannelIngress) {
           NumberOfChannelIngress = CurrentNumberOfChannelIngress;
           LastChaMeasurementsMap = Result;
           LastCachelineUpdate = CachelineNumber;
