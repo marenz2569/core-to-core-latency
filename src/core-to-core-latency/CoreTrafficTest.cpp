@@ -108,11 +108,6 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const ChaTo
           CounterValues.emplace(Values.at(PcmRingCounters::Direction::Down) / AbsoluteClusteringThreshold);
         }
 
-        // we expect two cluster. one for zero values and one for the value that is above the detection threshold
-        if (CounterValues.size() == 2) {
-          continue;
-        }
-
         // Find the cacheline where we count the least number of ring channel activations.
         auto CurrentNumberOfChannelIngress = 0;
         for (const auto& [Cha, Values] : Result) {
@@ -124,8 +119,12 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const ChaTo
           }
         }
 
-        // Update if we have at least one ingress channel
-        if (CurrentNumberOfChannelIngress > 0 && NumberOfChannelIngress > CurrentNumberOfChannelIngress) {
+        // Update if we
+        // 1. have two cluster of two values. one for zero values and one for the value that is above the
+        // detection threshold.
+        // 2. have at least one ingress channel
+        if (CounterValues.size() == 2 && CurrentNumberOfChannelIngress > 0 &&
+            NumberOfChannelIngress > CurrentNumberOfChannelIngress) {
           NumberOfChannelIngress = CurrentNumberOfChannelIngress;
           LastChaMeasurementsMap = Result;
           LastCachelineUpdate = CachelineNumber;
