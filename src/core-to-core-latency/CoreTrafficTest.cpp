@@ -143,8 +143,9 @@ void CoreTrafficTest::localThreadFunction(void* VoidCacheline, const std::size_t
                                           const std::function<void(unsigned)>& ThreadBindFunction) {
   ThreadBindFunction(CpuId);
 
+  volatile auto* Cacheline = static_cast<uint8_t*>(VoidCacheline);
+
   for (auto I = 0; I < NumberOfCachelineReads; I++) {
-    volatile auto* Cacheline = static_cast<uint8_t*>(VoidCacheline);
     // read/write cache lines.
     *Cacheline = *Cacheline + 1;
   }
@@ -154,10 +155,10 @@ void CoreTrafficTest::remoteThreadFunction(void* VoidCacheline, const std::size_
                                            uint64_t CpuId, const std::function<void(unsigned)>& ThreadBindFunction) {
   ThreadBindFunction(CpuId);
 
-  uint8_t Sum{};
+  volatile auto* Cacheline = static_cast<uint8_t*>(VoidCacheline);
 
+  uint8_t Sum{};
   for (auto I = 0; I < NumberOfCachelineReads; I++) {
-    volatile auto* Cacheline = static_cast<uint8_t*>(VoidCacheline);
     // read cache lines. we will see ingress from the local cha to this core.
     Sum += *Cacheline;
   }
