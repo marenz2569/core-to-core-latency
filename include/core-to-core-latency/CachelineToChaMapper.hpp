@@ -16,12 +16,11 @@ public:
   CachelineToChaMapper() = default;
 
   /// Determine the mapping of cha boxes to cache lines for an array of cache lines.
-  /// \arg Cachelines The pointer to the cache lines
-  /// \arg NumberOfCachelines The number of cache lines that are pointed to by the Cachelines pointer.
+  /// \arg Cachelines The vector of cachline pointers
   /// \arg NumberOfCachelineReads The number of times each cachline is read during the benchmark.
   /// \arg SocketIndex The socket that is used for this benchmark
   /// \returns the map of cha boxes to cache lines
-  [[nodiscard]] static auto run(void* Cachelines, std::size_t NumberOfCachelines, std::size_t NumberOfCachelineReads,
+  [[nodiscard]] static auto run(const std::vector<void*>& Cachelines, std::size_t NumberOfCachelineReads,
                                 uint64_t SocketIndex) -> ChaToCachelinesMap;
 };
 

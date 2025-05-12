@@ -8,7 +8,7 @@
 
 namespace cclat {
 
-auto CachelineToChaMapper::run(void* Cachelines, std::size_t NumberOfCachelines, std::size_t NumberOfCachelineReads,
+auto CachelineToChaMapper::run(const std::vector<void*>& Cachelines, std::size_t NumberOfCachelineReads,
                                uint64_t SocketIndex) -> ChaToCachelinesMap {
   ChaToCachelinesMap ChaToCachelines;
 
@@ -36,9 +36,8 @@ auto CachelineToChaMapper::run(void* Cachelines, std::size_t NumberOfCachelines,
     Pcm->programCboRaw(CboConfigMap.data(), 0, 0);
   }
 
-  for (auto CachelineIndex = 0; CachelineIndex < NumberOfCachelines; CachelineIndex++) {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-    auto* Cacheline = static_cast<uint8_t*>(Cachelines) + static_cast<ptrdiff_t>(64 * CachelineIndex);
+  for (const auto& Cacheline : Cachelines) {
+    auto* Uint8CachelinePtr = static_cast<uint8_t*>(Cacheline);
 
     // flush, read, flush and repeat. the uncore counter for CHA reads will increment if this cacheline is in the
     // counter.
@@ -47,12 +46,12 @@ auto CachelineToChaMapper::run(void* Cachelines, std::size_t NumberOfCachelines,
 
     volatile uint8_t Sum = 0;
     for (auto I = 0; I < NumberOfCachelineReads; I++) {
-      Sum = Sum + *Cacheline;
+      Sum = Sum + *Uint8CachelinePtr;
       asm __volatile__("mfence\n"
                        "lfence\n"
                        "clflush (%[addr])\n"
                        "mfence\n"
-                       "lfence" ::[addr] "r"(Cacheline)
+                       "lfence" ::[addr] "r"(Uint8CachelinePtr)
                        : "memory");
     }
 
