@@ -37,6 +37,16 @@ auto main(int Argc, const char** Argv) -> int {
       Cachelines[CachelineIndex] = static_cast<void*>(Cacheline);
     }
 
+    auto L2Index = [](uint64_t PhysicalAddress) { return (PhysicalAddress & 0xFFFF) >> 6; };
+
+    // Filter out all cachelines that are not in the same L2 set.
+    // NOLINTNEXTLINE(modernize-use-ranges)
+    Cachelines.erase(std::remove_if(Cachelines.begin(), Cachelines.end(),
+                                    [&L2Index](void* Cacheline) {
+                                      return L2Index(PhysicalAddress::getPhysicalAddress(Cacheline)) != 1;
+                                    }),
+                     Cachelines.end());
+
     auto ChaToCachelines = cclat::CachelineToChaMapper::run(Cachelines,
                                                             /*NumberOfCachelineReads=*/100, Cfg.SocketIndex);
 
