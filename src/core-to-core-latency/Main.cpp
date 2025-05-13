@@ -29,7 +29,7 @@ auto main(int Argc, const char** Argv) -> int {
         firestarter::AlignedAlloc::malloc(static_cast<std::size_t>(64) * Cfg.NumberOfCachelines, /*Alignment=*/4096);
 
     auto ChaToCachelines = cclat::CachelineToChaMapper::run(Memory, Cfg.NumberOfCachelines,
-                                                            /*NumberOfCachelineReads=*/100, Cfg.SocketIndex);
+                                                            /*NumberOfCachelineReads=*/1000, Cfg.SocketIndex);
 
     for (const auto& [Cha, Values] : ChaToCachelines) {
       std::cout << "Cha index: " << Cha << " contains " << Values.size() << " values" << '\n';
