@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <nlohmann/json.hpp>
+#include <sstream>
 
 namespace cclat {
 
@@ -21,6 +22,15 @@ static auto dump(std::ostream& Stream, const ChaIndexAndIngressDirection& Cid) -
 }
 
 } // namespace cclat
+
+template <> struct std::hash<cclat::ChaIndexAndIngressDirection> {
+  auto operator()(cclat::ChaIndexAndIngressDirection const& Cid) const noexcept -> std::size_t {
+    std::stringstream Ss;
+    std::stringstream Outstream;
+    Outstream << dump(Ss, Cid).rdbuf();
+    return std::hash<std::string>{}(Outstream.str());
+  }
+};
 
 namespace nlohmann {
 

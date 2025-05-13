@@ -85,7 +85,7 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const ChaTo
       }
 
       auto CachelineNumber = 0;
-      std::unordered_map<ChaIndexAndIngressDirectionVector, std::size_t> IngressDirectionCount;
+      std::unordered_map<ChaIndexAndIngressDirection, std::size_t> IngressDirectionCount;
 
       // Run the measurement for one cacheline and repeat with the next if the result is not valid.
       for (const auto& Cacheline : Cachelines) {
@@ -112,7 +112,9 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const ChaTo
 
         auto Ingress = fromChaMeasurementsMap(Result, AbsoluteDetectionThreshold);
 
-        IngressDirectionCount[Ingress]++;
+        for (const auto& Dir : Ingress) {
+          IngressDirectionCount[Dir]++;
+        }
 
         // Repeat for 200 cachelines
         if (CachelineNumber > 200) {
@@ -129,19 +131,16 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const ChaTo
       std::cout << "Local core: " << LocalCore << " Local cha: " << LocalCha << "\n";
       std::cout << "Remote core: " << RemoteCore << " Remote cha: " << RemoteCha << "\n";
 
-      // NOLINTNEXTLINE(modernize-use-ranges)
-      auto Element = std::max_element(std::begin(IngressDirectionCount), std::end(IngressDirectionCount),
-                                      [](const auto& Lhs, const auto& Rhs) { return Lhs.second < Rhs.second; });
-
-      std::cout << "Found element with occurance of " << Element->second << "\n";
-      {
-        std::stringstream Ss;
-        std::cout << dump(Ss, Element->first).rdbuf() << "\n";
+      for (const auto& [Dir, Count] : IngressDirectionCount) {
+        {
+          std::stringstream Ss;
+          std::cout << dump(Ss, Dir).rdbuf() << " Count: " << Count << "\n";
+        }
       }
 
       // insert the result for the local/remote cha combination
       ChasWithIngressPathsVector.emplace_back(
-          MeasuredChasAndIngressPaths{.LocalCha = LocalCha, .RemoteCha = RemoteCha, .IngressPaths = Element->first});
+          MeasuredChasAndIngressPaths{.LocalCha = LocalCha, .RemoteCha = RemoteCha, .IngressPaths = {}});
 
       break;
     }
