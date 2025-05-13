@@ -3,7 +3,6 @@
 #include "core-to-core-latency/ChaToCoreMapper.hpp"
 #include "core-to-core-latency/Config.hpp"
 #include "core-to-core-latency/CoreTrafficTest.hpp"
-#include "core-to-core-latency/PhysicalAddress.hpp"
 #include "core-to-core-latency/TestList.hpp"
 #include "firestarter/CPUTopology.hpp"
 
@@ -29,15 +28,7 @@ auto main(int Argc, const char** Argv) -> int {
     auto* Memory =
         firestarter::AlignedAlloc::malloc(static_cast<std::size_t>(64) * Cfg.NumberOfCachelines, /*Alignment=*/4096);
 
-    std::vector<void*> Cachelines(Cfg.NumberOfCachelines);
-    for (auto CachelineIndex = 0; CachelineIndex < Cfg.NumberOfCachelines; CachelineIndex++) {
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-      auto* Cacheline = static_cast<uint8_t*>(Memory) + static_cast<ptrdiff_t>(64 * CachelineIndex);
-
-      Cachelines[CachelineIndex] = static_cast<void*>(Cacheline);
-    }
-
-    auto ChaToCachelines = cclat::CachelineToChaMapper::run(Cachelines,
+    auto ChaToCachelines = cclat::CachelineToChaMapper::run(Memory, Cfg.NumberOfCachelines,
                                                             /*NumberOfCachelineReads=*/100, Cfg.SocketIndex);
 
     for (const auto& [Cha, Values] : ChaToCachelines) {
