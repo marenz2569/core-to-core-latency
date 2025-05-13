@@ -5,7 +5,6 @@ add_executable(core-to-core-latency
     core-to-core-latency/Config.cpp
     core-to-core-latency/CoreTrafficTest.cpp
     core-to-core-latency/Main.cpp
-    core-to-core-latency/PhysicalAddress.cpp
     core-to-core-latency/TestList.cpp
     )
 
