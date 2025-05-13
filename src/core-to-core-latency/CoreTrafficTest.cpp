@@ -84,11 +84,8 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const ChaTo
                          : "memory");
       }
 
-      auto ResultValid = false;
-      auto NumberOfChannelIngress = std::numeric_limits<int>::max();
-      auto LastCachelineUpdate = 0;
-      ChaMeasurementsMap LastChaMeasurementsMap;
       auto CachelineNumber = 0;
+      std::unordered_map<ChaIndexAndIngressDirectionVector, std::size_t> IngressDirectionCount;
 
       // Run the measurement for one cacheline and repeat with the next if the result is not valid.
       for (const auto& Cacheline : Cachelines) {
@@ -108,53 +105,45 @@ auto CoreTrafficTest::run(const ChaToCachelinesMap& ChaToCachelines, const ChaTo
           CounterValues.emplace(Values.at(PcmRingCounters::Direction::Down) / AbsoluteClusteringThreshold);
         }
 
-        // Find the cacheline where we count the least number of ring channel activations.
-        auto CurrentNumberOfChannelIngress = 0;
-        for (const auto& [Cha, Values] : Result) {
-          for (auto I = 0; I < 4; I++) {
-            // check if the line is activated
-            if (Values.at(I) > AbsoluteDetectionThreshold) {
-              CurrentNumberOfChannelIngress++;
-            }
-          }
-        }
-
-        // Update if we
-        // 1. have two cluster of two values. one for zero values and one for the value that is above the
-        // detection threshold.
-        // 2. have at least one ingress channel
-        if (CounterValues.size() == 2 && CurrentNumberOfChannelIngress > 0 &&
-            NumberOfChannelIngress > CurrentNumberOfChannelIngress) {
-          NumberOfChannelIngress = CurrentNumberOfChannelIngress;
-          LastChaMeasurementsMap = Result;
-          LastCachelineUpdate = CachelineNumber;
-        }
-
-        // Read 40 more cache lines until deciding we hit the minimum.
-        if (CachelineNumber - LastCachelineUpdate < 40) {
+        // we expect two cluster. one for zero values and one for the value that is above the detection threshold
+        if (CounterValues.size() == 2) {
           continue;
         }
 
-        ResultValid = true;
+        auto Ingress = fromChaMeasurementsMap(Result, AbsoluteDetectionThreshold);
 
-        std::cout << "Local core: " << LocalCore << " Local cha: " << LocalCha << "\n";
-        std::cout << "Remote core: " << RemoteCore << " Remote cha: " << RemoteCha << "\n";
+        IngressDirectionCount[Ingress]++;
 
-        dump(LastChaMeasurementsMap);
-
-        // insert the result for the local/remote cha combination
-        auto Ingress = fromChaMeasurementsMap(LastChaMeasurementsMap, AbsoluteDetectionThreshold);
-        ChasWithIngressPathsVector.emplace_back(
-            MeasuredChasAndIngressPaths{.LocalCha = LocalCha, .RemoteCha = RemoteCha, .IngressPaths = Ingress});
-
-        break;
+        // Repeat for 200 cachelines
+        if (CachelineNumber > 200) {
+          break;
+        }
       }
 
-      if (!ResultValid) {
+      if (IngressDirectionCount.empty()) {
         throw std::runtime_error("Could not find setting for Local core: " + std::to_string(LocalCore) +
                                  " Local cha: " + std::to_string(LocalCha) + " Remote core: " +
                                  std::to_string(RemoteCore) + " Remote cha: " + std::to_string(RemoteCha));
       }
+
+      std::cout << "Local core: " << LocalCore << " Local cha: " << LocalCha << "\n";
+      std::cout << "Remote core: " << RemoteCore << " Remote cha: " << RemoteCha << "\n";
+
+      // NOLINTNEXTLINE(modernize-use-ranges)
+      auto Element = std::max_element(std::begin(IngressDirectionCount), std::end(IngressDirectionCount),
+                                      [](const auto& Lhs, const auto& Rhs) { return Lhs.second < Rhs.second; });
+
+      std::cout << "Found element with occurance of " << Element->second << "\n";
+      {
+        std::stringstream Ss;
+        std::cout << dump(Ss, Element->first).rdbuf() << "\n";
+      }
+
+      // insert the result for the local/remote cha combination
+      ChasWithIngressPathsVector.emplace_back(
+          MeasuredChasAndIngressPaths{.LocalCha = LocalCha, .RemoteCha = RemoteCha, .IngressPaths = Element->first});
+
+      break;
     }
   }
 
