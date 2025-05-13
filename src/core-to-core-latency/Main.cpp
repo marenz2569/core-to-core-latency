@@ -44,7 +44,7 @@ auto main(int Argc, const char** Argv) -> int {
 
     auto CoreToChaBusyPath = cclat::CoreTrafficTest::run(
         ChaToCachelines, ChaToCore, /*NumberOfCachelineReads=*/10000000,
-        /*ClusteringThreshold=*/1 / 100.0, /*DetectionThreshold=*/1 / 20.0, Cfg.SocketIndex);
+        /*ClusteringThreshold=*/1 / 100.0, /*DetectionThreshold=*/1 / 40.0, Cfg.SocketIndex);
 
     auto Results = cclat::ChaCoreMapperResults{.ChaToCore = ChaToCore, .ChasWithIngressPathsVector = CoreToChaBusyPath};
 
