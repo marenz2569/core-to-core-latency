@@ -4,6 +4,7 @@
 #include <cpucounters.h>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <stdexcept>
 
 namespace cclat {
