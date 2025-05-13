@@ -9,7 +9,16 @@ namespace cclat {
 struct ChaIndexAndIngressDirection {
   uint64_t ChaIndex;
   uint64_t IngressDirection;
+
+  auto operator==(const cclat::ChaIndexAndIngressDirection& Other) const -> bool {
+    return std::tie(ChaIndex, IngressDirection) == std::tie(Other.ChaIndex, Other.IngressDirection);
+  }
 };
+
+static auto dump(std::ostream& Stream, const ChaIndexAndIngressDirection& Cid) -> std::ostream& {
+  Stream << "ChaIndex: " << Cid.ChaIndex << " IngressDirection: " << Cid.IngressDirection << "\n";
+  return Stream;
+}
 
 } // namespace cclat
 
