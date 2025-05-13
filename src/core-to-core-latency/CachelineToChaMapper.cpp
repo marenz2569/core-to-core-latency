@@ -73,7 +73,7 @@ auto CachelineToChaMapper::run(void* Cachelines, std::size_t NumberOfCachelines,
     }
 
     // find the CHA index where approximatly NumberOfCachelineReads occured.
-    uint64_t SelectedChaIndex{};
+    std::optional<uint64_t> SelectedChaIndex;
 
     for (const auto& [Cha, Value] : ChaToCounterValueMap) {
       if (Value > static_cast<std::size_t>(0.9 * static_cast<double>(NumberOfCachelineReads))) {
@@ -81,7 +81,9 @@ auto CachelineToChaMapper::run(void* Cachelines, std::size_t NumberOfCachelines,
       }
     }
 
-    ChaToCachelines[SelectedChaIndex].emplace_back(Cacheline);
+    if (SelectedChaIndex) {
+      ChaToCachelines[*SelectedChaIndex].emplace_back(Cacheline);
+    }
   }
 
   return ChaToCachelines;
